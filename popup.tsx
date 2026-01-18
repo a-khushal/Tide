@@ -98,18 +98,10 @@ function IndexPopup() {
     fetchAnalysis()
   }, [])
 
-  const containerStyle = {
-    padding: 16,
-    width: "375px",
-    height: "600px",
-    overflowY: "auto" as const,
-    boxSizing: "border-box" as const
-  }
-
   if (loading) {
     return (
-      <div style={containerStyle}>
-        <h2 style={{ margin: "0 0 16px 0" }}>Analyzing page...</h2>
+      <div className="p-4 w-[375px] h-[600px] overflow-y-auto box-border">
+        <h2 className="m-0 mb-4">Analyzing page...</h2>
         <div>Collecting JavaScript metrics...</div>
       </div>
     )
@@ -117,10 +109,10 @@ function IndexPopup() {
 
   if (error || !analysis) {
     return (
-      <div style={containerStyle}>
-        <h2 style={{ margin: "0 0 16px 0" }}>Tide</h2>
-        <div style={{ color: "#d32f2f" }}>{error || "No data available"}</div>
-        <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
+      <div className="p-4 w-[375px] h-[600px] overflow-y-auto box-border">
+        <h2 className="m-0 mb-4">Tide</h2>
+        <div className="text-[#d32f2f]">{error || "No data available"}</div>
+        <div className="mt-2 text-xs text-[#666]">
           Try refreshing the page and opening this popup again.
         </div>
       </div>
@@ -132,47 +124,42 @@ function IndexPopup() {
     .slice(0, 10)
 
   return (
-    <div style={containerStyle}>
-      <h2 style={{ margin: "0 0 20px 0", fontSize: 20 }}>Tide</h2>
+    <div className="p-4 w-[375px] h-[600px] overflow-y-auto box-border">
+      <h2 className="m-0 mb-5 text-xl">Tide</h2>
 
-      <section style={{ marginBottom: 24 }}>
-        <h3 style={{ margin: "0 0 12px 0", fontSize: 16, fontWeight: 600 }}>
+      <section className="mb-6">
+        <h3 className="m-0 mb-3 text-base font-semibold">
           Size Tracking
         </h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div style={{ padding: 12, background: "#f5f5f5", borderRadius: 4 }}>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Total Size</div>
-            <div style={{ fontSize: 18, fontWeight: 600 }}>{formatBytes(analysis.totalSize)}</div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-[#f5f5f5] rounded">
+            <div className="text-xs text-[#666] mb-1">Total Size</div>
+            <div className="text-lg font-semibold">{formatBytes(analysis.totalSize)}</div>
           </div>
-          <div style={{ padding: 12, background: "#f5f5f5", borderRadius: 4 }}>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Gzipped</div>
-            <div style={{ fontSize: 18, fontWeight: 600 }}>{formatBytes(analysis.totalGzippedSize)}</div>
+          <div className="p-3 bg-[#f5f5f5] rounded">
+            <div className="text-xs text-[#666] mb-1">Gzipped</div>
+            <div className="text-lg font-semibold">{formatBytes(analysis.totalGzippedSize)}</div>
           </div>
         </div>
-        <div style={{ marginTop: 12, fontSize: 12, color: "#666" }}>
+        <div className="mt-3 text-xs text-[#666]">
           {analysis.scripts.length} script{analysis.scripts.length !== 1 ? "s" : ""} detected
         </div>
       </section>
 
       {analysis.frameworks.length > 0 && (
-        <section style={{ marginBottom: 24 }}>
-          <h3 style={{ margin: "0 0 12px 0", fontSize: 16, fontWeight: 600 }}>
+        <section className="mb-6">
+          <h3 className="m-0 mb-3 text-base font-semibold">
             Frameworks
           </h3>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div className="flex flex-wrap gap-2">
             {analysis.frameworks.map((fw) => (
               <div
                 key={fw.name}
-                style={{
-                  padding: "8px 12px",
-                  background: "#e3f2fd",
-                  borderRadius: 4,
-                  fontSize: 14
-                }}
+                className="px-3 py-2 bg-[#e3f2fd] rounded text-sm"
               >
-                <div style={{ fontWeight: 600 }}>{fw.name}</div>
+                <div className="font-semibold">{fw.name}</div>
                 {fw.version && (
-                  <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+                  <div className="text-[11px] text-[#666] mt-0.5">
                     v{fw.version}
                   </div>
                 )}
@@ -183,24 +170,19 @@ function IndexPopup() {
       )}
 
       {analysis.libraries.length > 0 && (
-        <section style={{ marginBottom: 24 }}>
-          <h3 style={{ margin: "0 0 12px 0", fontSize: 16, fontWeight: 600 }}>
+        <section className="mb-6">
+          <h3 className="m-0 mb-3 text-base font-semibold">
             Top Libraries
           </h3>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div className="flex flex-wrap gap-2">
             {analysis.libraries.map((lib) => (
               <div
                 key={lib.name}
-                style={{
-                  padding: "8px 12px",
-                  background: "#f3e5f5",
-                  borderRadius: 4,
-                  fontSize: 14
-                }}
+                className="px-3 py-2 bg-[#f3e5f5] rounded text-sm"
               >
-                <div style={{ fontWeight: 600 }}>{lib.name}</div>
+                <div className="font-semibold">{lib.name}</div>
                 {lib.version && (
-                  <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
+                  <div className="text-[11px] text-[#666] mt-0.5">
                     v{lib.version}
                   </div>
                 )}
@@ -210,40 +192,40 @@ function IndexPopup() {
         </section>
       )}
 
-      <section style={{ marginBottom: 24 }}>
-        <h3 style={{ margin: "0 0 12px 0", fontSize: 16, fontWeight: 600 }}>
+      <section className="mb-6">
+        <h3 className="m-0 mb-3 text-base font-semibold">
           Performance Metrics
         </h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div style={{ padding: 12, background: "#fff3e0", borderRadius: 4 }}>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Long Tasks</div>
-            <div style={{ fontSize: 18, fontWeight: 600 }}>{analysis.performance.longTasks}</div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-[#fff3e0] rounded">
+            <div className="text-xs text-[#666] mb-1">Long Tasks</div>
+            <div className="text-lg font-semibold">{analysis.performance.longTasks}</div>
           </div>
-          <div style={{ padding: 12, background: "#fff3e0", borderRadius: 4 }}>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>TTI</div>
-            <div style={{ fontSize: 18, fontWeight: 600 }}>
+          <div className="p-3 bg-[#fff3e0] rounded">
+            <div className="text-xs text-[#666] mb-1">TTI</div>
+            <div className="text-lg font-semibold">
               {formatTime(analysis.performance.timeToInteractive)}
             </div>
           </div>
-          <div style={{ padding: 12, background: "#fff3e0", borderRadius: 4 }}>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Load Time</div>
-            <div style={{ fontSize: 18, fontWeight: 600 }}>
+          <div className="p-3 bg-[#fff3e0] rounded">
+            <div className="text-xs text-[#666] mb-1">Load Time</div>
+            <div className="text-lg font-semibold">
               {formatTime(analysis.performance.scriptLoadTime)}
             </div>
           </div>
-          <div style={{ padding: 12, background: "#fff3e0", borderRadius: 4 }}>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>Parse Time</div>
-            <div style={{ fontSize: 18, fontWeight: 600 }}>
+          <div className="p-3 bg-[#fff3e0] rounded">
+            <div className="text-xs text-[#666] mb-1">Parse Time</div>
+            <div className="text-lg font-semibold">
               {formatTime(analysis.performance.scriptParseTime)}
             </div>
           </div>
         </div>
         {analysis.performance.mainThreadBlockingTime > 0 && (
-          <div style={{ marginTop: 12, padding: 12, background: "#ffebee", borderRadius: 4 }}>
-            <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
+          <div className="mt-3 p-3 bg-[#ffebee] rounded">
+            <div className="text-xs text-[#666] mb-1">
               Main Thread Blocking
             </div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "#c62828" }}>
+            <div className="text-base font-semibold text-[#c62828]">
               {formatTime(analysis.performance.mainThreadBlockingTime)}
             </div>
           </div>
@@ -252,31 +234,26 @@ function IndexPopup() {
 
       {topScripts.length > 0 && (
         <section>
-          <h3 style={{ margin: "0 0 12px 0", fontSize: 16, fontWeight: 600 }}>
+          <h3 className="m-0 mb-3 text-base font-semibold">
             Top Scripts by Size
           </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="flex flex-col gap-2">
             {topScripts.map((script, idx) => {
               const percentage = analysis.totalSize > 0 ? (script.size / analysis.totalSize) * 100 : 0
               const fileName = script.src.split("/").pop() || script.src
               return (
                 <div
                   key={idx}
-                  style={{
-                    padding: 12,
-                    background: "#f5f5f5",
-                    borderRadius: 4,
-                    fontSize: 12
-                  }}
+                  className="p-3 bg-[#f5f5f5] rounded text-xs"
                 >
-                  <div style={{ fontWeight: 600, marginBottom: 4, wordBreak: "break-all" }}>
+                  <div className="font-semibold mb-1 break-all">
                     {fileName}
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <div className="flex justify-between mb-1">
                     <span>{formatBytes(script.size)}</span>
-                    <span style={{ color: "#666" }}>{percentage.toFixed(1)}%</span>
+                    <span className="text-[#666]">{percentage.toFixed(1)}%</span>
                   </div>
-                  <div style={{ fontSize: 11, color: "#666" }}>
+                  <div className="text-[11px] text-[#666]">
                     Gzipped: {formatBytes(script.gzippedSize)}
                   </div>
                 </div>

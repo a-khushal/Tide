@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 html, body {
   width: 375px !important;
   height: 600px !important;
@@ -15,4 +19,3 @@ html, body {
   width: 375px !important;
   height: 600px !important;
 }
-

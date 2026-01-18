@@ -1,45 +1,9 @@
 import type { PlasmoContentScript } from "plasmo"
+import type { AnalysisData, FrameworkInfo, LibraryInfo, PerformanceMetrics, ScriptInfo } from "./types"
 
 export const config: PlasmoContentScript = {
     matches: ["<all_urls>"],
     all_frames: false
-}
-
-interface ScriptInfo {
-    src: string
-    size: number
-    gzippedSize: number
-    loadTime: number
-    parseTime: number
-}
-
-interface FrameworkInfo {
-    name: string
-    version: string | null
-    detected: boolean
-}
-
-interface LibraryInfo {
-    name: string
-    version: string | null
-    detected: boolean
-}
-
-interface PerformanceMetrics {
-    longTasks: number
-    scriptLoadTime: number
-    scriptParseTime: number
-    timeToInteractive: number
-    mainThreadBlockingTime: number
-}
-
-interface AnalysisData {
-    scripts: ScriptInfo[]
-    frameworks: FrameworkInfo[]
-    libraries: LibraryInfo[]
-    performance: PerformanceMetrics
-    totalSize: number
-    totalGzippedSize: number
 }
 
 function detectFrameworks(): FrameworkInfo[] {
