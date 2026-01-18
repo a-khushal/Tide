@@ -6,6 +6,67 @@ export const config: PlasmoContentScript = {
     all_frames: false
 }
 
+let extensionActive = true
+
+try {
+    const port = chrome.runtime.connect({ name: "content-script-connection" })
+    
+    port.onDisconnect.addListener(() => {
+        extensionActive = false
+        console.warn("Extension context invalidated - disabling extension API calls")
+    })
+    
+    port.onMessage.addListener(() => {
+    })
+} catch (error) {
+    extensionActive = false
+    console.warn("Failed to establish extension connection:", error)
+}
+
+function isExtensionContextValid(): boolean {
+    if (!extensionActive) {
+        return false
+    }
+    try {
+        if (typeof chrome === "undefined" || typeof chrome.runtime === "undefined") {
+            extensionActive = false
+            return false
+        }
+        const id = chrome.runtime.id
+        if (id === undefined || id === null) {
+            extensionActive = false
+            return false
+        }
+        return true
+    } catch (error) {
+        extensionActive = false
+        if (error instanceof Error && error.message.includes("Extension context invalidated")) {
+            return false
+        }
+        return false
+    }
+}
+
+window.addEventListener("error", (event) => {
+    if (event.error?.message?.includes("Extension context invalidated")) {
+        event.preventDefault()
+        extensionActive = false
+        console.warn("Caught Extension context invalidated error:", event.error)
+        return true
+    }
+    return false
+})
+
+window.addEventListener("unhandledrejection", (event) => {
+    if (event.reason?.message?.includes("Extension context invalidated")) {
+        event.preventDefault()
+        extensionActive = false
+        console.warn("Caught unhandled Extension context invalidated rejection:", event.reason)
+        return true
+    }
+    return false
+})
+
 function detectFrameworks(): FrameworkInfo[] {
     const frameworks: FrameworkInfo[] = []
     const win = window as any
@@ -139,6 +200,8 @@ function collectScriptInfo(): ScriptInfo[] {
     const perfEntries = performance.getEntriesByType("resource") as PerformanceResourceTiming[]
     const scriptTags = Array.from(document.querySelectorAll("script[src]"))
 
+    console.log("scriptTags", scriptTags)
+
     const scriptMap = new Map<string, PerformanceResourceTiming>()
     
     for (const entry of perfEntries) {
@@ -228,20 +291,40 @@ async function analyzePage(): Promise<AnalysisData> {
     }
 }
 
+
 async function sendAnalysisToBackground() {
+    if (!extensionActive) {
+        return
+    }
+    
     try {
         const analysis = await analyzePage()
-        chrome.runtime.sendMessage({
-            type: "PAGE_ANALYSIS",
-            data: analysis,
-            url: window.location.href
-        }, () => {
-            if (chrome.runtime.lastError) {
-                console.error("Failed to send analysis:", chrome.runtime.lastError)
+        
+        if (!extensionActive) {
+            return
+        }
+        
+        try {
+            chrome.runtime.sendMessage({
+                type: "PAGE_ANALYSIS",
+                data: analysis,
+                url: window.location.href
+            }, () => {
+                if (chrome.runtime.lastError) {
+                    if (chrome.runtime.lastError.message?.includes("Extension context invalidated")) {
+                        extensionActive = false
+                    }
+                }
+            })
+        } catch (sendError) {
+            if (sendError instanceof Error && sendError.message.includes("Extension context invalidated")) {
+                extensionActive = false
             }
-        })
+        }
     } catch (error) {
-        console.error("Analysis error:", error)
+        if (error instanceof Error && error.message.includes("Extension context invalidated")) {
+            extensionActive = false
+        }
     }
 }
 
@@ -253,27 +336,71 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     })
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === "REQUEST_ANALYSIS") {
-        analyzePage().then(analysis => {
-            chrome.runtime.sendMessage({
-                type: "PAGE_ANALYSIS",
-                data: analysis,
-                url: window.location.href
-            }, () => {
-                if (chrome.runtime.lastError) {
-                    console.error("Failed to send analysis:", chrome.runtime.lastError)
-                    sendResponse({ success: false })
-                } else {
-                    sendResponse({ success: true })
-                }
-            })
-        }).catch(error => {
-            console.error("Analysis error:", error)
-            sendResponse({ success: false })
+if (extensionActive) {
+    try {
+        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+            if (!extensionActive) {
+                sendResponse({ success: false, error: "Extension context invalidated" })
+                return false
+            }
+
+            console.log("Content script received message:", message.type)
+            if (message.type === "REQUEST_ANALYSIS") {
+                console.log("Starting page analysis...")
+                analyzePage().then(analysis => {
+                    if (!extensionActive) {
+                        sendResponse({ success: false, error: "Extension context invalidated" })
+                        return
+                    }
+
+                    console.log("Analysis complete, sending to background:", analysis)
+                    try {
+                        chrome.runtime.sendMessage({
+                            type: "PAGE_ANALYSIS",
+                            data: analysis,
+                            url: window.location.href
+                        }, () => {
+                            if (chrome.runtime.lastError) {
+                                if (chrome.runtime.lastError.message?.includes("Extension context invalidated")) {
+                                    extensionActive = false
+                                    sendResponse({ success: false, error: "Extension context invalidated" })
+                                } else {
+                                    console.error("Failed to send analysis:", chrome.runtime.lastError)
+                                    sendResponse({ success: false })
+                                }
+                            } else {
+                                console.log("Analysis sent successfully")
+                                sendResponse({ success: true })
+                            }
+                        })
+                    } catch (error) {
+                        if (error instanceof Error && error.message.includes("Extension context invalidated")) {
+                            extensionActive = false
+                            sendResponse({ success: false, error: "Extension context invalidated" })
+                        } else {
+                            console.error("Error sending message:", error)
+                            sendResponse({ success: false })
+                        }
+                    }
+                }).catch(error => {
+                    if (error instanceof Error && error.message.includes("Extension context invalidated")) {
+                        extensionActive = false
+                        sendResponse({ success: false, error: "Extension context invalidated" })
+                    } else {
+                        console.error("Analysis error:", error)
+                        sendResponse({ success: false })
+                    }
+                })
+                return true
+            }
+            return false
         })
-        return true
+    } catch (error) {
+        if (error instanceof Error && error.message.includes("Extension context invalidated")) {
+            extensionActive = false
+        } else {
+            console.error("Error registering message listener:", error)
+        }
     }
-    return false
-})
+}
 

@@ -51,12 +51,15 @@ function IndexPopup() {
               return
             }
 
+            console.log("Popup: Requesting analysis from content script for tab", tab.id)
             chrome.tabs.sendMessage(tab.id!, { type: "REQUEST_ANALYSIS" }, (msgResponse) => {
               if (chrome.runtime.lastError) {
+                console.error("Popup: Failed to send message to content script:", chrome.runtime.lastError)
                 setError("Content script not available. Please refresh the page and try again.")
                 setLoading(false)
                 return
               }
+              console.log("Popup: Content script responded:", msgResponse)
 
               let attempts = 0
               const maxAttempts = 20
