@@ -100,7 +100,7 @@ function IndexPopup() {
 
   if (loading) {
     return (
-      <div className="p-4 w-[375px] h-[600px] overflow-y-auto box-border">
+      <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border">
         <h2 className="m-0 mb-4">Analyzing page...</h2>
         <div>Collecting JavaScript metrics...</div>
       </div>
@@ -109,7 +109,7 @@ function IndexPopup() {
 
   if (error || !analysis) {
     return (
-      <div className="p-4 w-[375px] h-[600px] overflow-y-auto box-border">
+      <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border">
         <h2 className="m-0 mb-4">Tide</h2>
         <div className="text-[#d32f2f]">{error || "No data available"}</div>
         <div className="mt-2 text-xs text-[#666]">
@@ -124,7 +124,7 @@ function IndexPopup() {
     .slice(0, 10)
 
   return (
-    <div className="p-4 w-[375px] h-[600px] overflow-y-auto box-border">
+    <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border">
       <h2 className="m-0 mb-5 text-xl">Tide</h2>
 
       <section className="mb-6">

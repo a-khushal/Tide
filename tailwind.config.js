@@ -3,7 +3,8 @@ module.exports = {
   content: [
     "./popup.tsx",
     "./content.ts",
-    "./**/*.{js,ts,jsx,tsx}"
+    "./background.ts",
+    "./types.ts"
   ],
   theme: {
     extend: {},

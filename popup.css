@@ -3,19 +3,19 @@
 @tailwind utilities;
 
 html, body {
-  width: 375px !important;
-  height: 600px !important;
+  width: 320px !important;
+  height: 480px !important;
   margin: 0;
   padding: 0;
   overflow: hidden;
 }
 
 #plasmo-shadow-container {
-  width: 375px !important;
-  height: 600px !important;
+  width: 320px !important;
+  height: 480px !important;
 }
 
 #__plasmo {
-  width: 375px !important;
-  height: 600px !important;
+  width: 320px !important;
+  height: 480px !important;
 }
