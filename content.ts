@@ -200,7 +200,30 @@ function collectScriptInfo(): ScriptInfo[] {
     const perfEntries = performance.getEntriesByType("resource") as PerformanceResourceTiming[]
     const scriptTags = Array.from(document.querySelectorAll("script[src]"))
 
-    console.log("scriptTags", scriptTags)
+    const scriptAttrMap = new Map<string, { async: boolean; defer: boolean; module: boolean }>()
+    for (const tag of scriptTags) {
+        const element = tag as HTMLScriptElement
+        if (element.src) {
+            scriptAttrMap.set(element.src, {
+                async: !!element.async,
+                defer: !!element.defer,
+                module: element.type === "module"
+            })
+        }
+    }
+
+    const cdnHosts = [
+        "cdn.",
+        "cloudflare.com",
+        "unpkg.com",
+        "jsdelivr.net",
+        "googleapis.com",
+        "gstatic.com",
+        "akamaihd.net",
+        "fastly.net",
+        "bootstrapcdn.com",
+        "cdnjs.com"
+    ]
 
     const scriptMap = new Map<string, PerformanceResourceTiming>()
     
@@ -229,6 +252,19 @@ function collectScriptInfo(): ScriptInfo[] {
         
         const size = uncompressedSize > 0 ? uncompressedSize : compressedSize
         const gzippedSize = compressedSize > 0 ? compressedSize : size
+
+        let host = ""
+        let firstParty = false
+        let isCDN = false
+        try {
+            const url = new URL(entry.name)
+            host = url.hostname
+            firstParty = url.hostname === window.location.hostname
+            isCDN = cdnHosts.some(h => url.hostname.includes(h))
+        } catch {
+        }
+
+        const attrs = scriptAttrMap.get(entry.name) || { async: false, defer: false, module: false }
         
         if (size > 0) {
             scripts.push({
@@ -236,7 +272,13 @@ function collectScriptInfo(): ScriptInfo[] {
                 size: size,
                 gzippedSize: gzippedSize,
                 loadTime: entry.responseEnd - entry.startTime,
-                parseTime: Math.max(0, entry.duration - (entry.responseEnd - entry.startTime))
+                parseTime: Math.max(0, entry.duration - (entry.responseEnd - entry.startTime)),
+                firstParty,
+                host,
+                isCDN,
+                async: attrs.async,
+                defer: attrs.defer,
+                module: attrs.module
             })
         }
     }
@@ -255,6 +297,19 @@ function collectScriptInfo(): ScriptInfo[] {
                 
                 const size = uncompressedSize > 0 ? uncompressedSize : compressedSize
                 const gzippedSize = compressedSize > 0 ? compressedSize : size
+
+                let host = ""
+                let firstParty = false
+                let isCDN = false
+                try {
+                    const url = new URL(src, window.location.href)
+                    host = url.hostname
+                    firstParty = url.hostname === window.location.hostname
+                    isCDN = cdnHosts.some(h => url.hostname.includes(h))
+                } catch {
+                }
+
+                const attrs = scriptAttrMap.get(src) || { async: false, defer: false, module: false }
                 
                 if (size > 0) {
                     scripts.push({
@@ -262,7 +317,13 @@ function collectScriptInfo(): ScriptInfo[] {
                         size: size,
                         gzippedSize: gzippedSize,
                         loadTime: perfEntry.responseEnd - perfEntry.startTime,
-                        parseTime: Math.max(0, perfEntry.duration - (perfEntry.responseEnd - perfEntry.startTime))
+                        parseTime: Math.max(0, perfEntry.duration - (perfEntry.responseEnd - perfEntry.startTime)),
+                        firstParty,
+                        host,
+                        isCDN,
+                        async: attrs.async,
+                        defer: attrs.defer,
+                        module: attrs.module
                     })
                 }
             }
@@ -280,6 +341,13 @@ async function analyzePage(): Promise<AnalysisData> {
 
     const totalSize = scripts.reduce((sum, s) => sum + s.size, 0)
     const totalGzippedSize = scripts.reduce((sum, s) => sum + s.gzippedSize, 0)
+    const firstPartySize = scripts.filter(s => s.firstParty).reduce((sum, s) => sum + s.size, 0)
+    const thirdPartySize = scripts.filter(s => !s.firstParty).reduce((sum, s) => sum + s.size, 0)
+    const firstPartyCount = scripts.filter(s => s.firstParty).length
+    const thirdPartyCount = scripts.filter(s => !s.firstParty).length
+    const cdnScripts = scripts.filter(s => s.isCDN)
+    const cdnCount = cdnScripts.length
+    const cdnSize = cdnScripts.reduce((sum, s) => sum + s.size, 0)
 
     return {
         scripts,
@@ -287,7 +355,13 @@ async function analyzePage(): Promise<AnalysisData> {
         libraries: libraries.slice(0, 5),
         performance,
         totalSize,
-        totalGzippedSize
+        totalGzippedSize,
+        firstPartySize,
+        thirdPartySize,
+        firstPartyCount,
+        thirdPartyCount,
+        cdnCount,
+        cdnSize
     }
 }
 

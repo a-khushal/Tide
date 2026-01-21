@@ -4,6 +4,12 @@ export interface ScriptInfo {
     gzippedSize: number
     loadTime: number
     parseTime: number
+    firstParty: boolean
+    host: string
+    isCDN: boolean
+    async: boolean
+    defer: boolean
+    module: boolean
 }
 
 export interface FrameworkInfo {
@@ -33,4 +39,10 @@ export interface AnalysisData {
     performance: PerformanceMetrics
     totalSize: number
     totalGzippedSize: number
+    firstPartySize: number
+    thirdPartySize: number
+    firstPartyCount: number
+    thirdPartyCount: number
+    cdnCount: number
+    cdnSize: number
 }

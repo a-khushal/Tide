@@ -126,6 +126,29 @@ function IndexPopup() {
     .sort((a, b) => b.size - a.size)
     .slice(0, 10)
 
+  const totalSize = analysis.totalSize ?? 0
+  const thirdPartySize = analysis.thirdPartySize ?? 0
+  const thirdPartyCount = analysis.thirdPartyCount ?? 0
+  const cdnSize = analysis.cdnSize ?? 0
+  const cdnCount = analysis.cdnCount ?? 0
+  const firstPartySize = analysis.firstPartySize ?? Math.max(0, totalSize - thirdPartySize)
+  const firstPartyCount =
+    analysis.firstPartyCount ?? (analysis.scripts?.filter((s) => s.firstParty).length || 0)
+
+  const topThirdParty = analysis.scripts
+    .filter((s) => !s.firstParty)
+    .sort((a, b) => b.size - a.size)
+    .slice(0, 5)
+
+  const getHost = (src: string, host?: string) => {
+    if (host) return host
+    try {
+      return new URL(src).hostname
+    } catch {
+      return src
+    }
+  }
+
   return (
     <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border">
       <h2 className="m-0 mb-5 text-xl">Tide</h2>
@@ -146,6 +169,29 @@ function IndexPopup() {
         </div>
         <div className="mt-3 text-xs text-[#666]">
           {analysis.scripts.length} script{analysis.scripts.length !== 1 ? "s" : ""} detected
+        </div>
+      </section>
+
+      <section className="mb-6">
+        <h3 className="m-0 mb-3 text-base font-semibold">Third-Party Analysis</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-[#eef2ff] rounded">
+            <div className="text-xs text-[#666] mb-1">Third-party size</div>
+            <div className="text-lg font-semibold">{formatBytes(thirdPartySize)}</div>
+            <div className="text-[11px] text-[#666]">
+              {thirdPartyCount} script{thirdPartyCount !== 1 ? "s" : ""}
+            </div>
+          </div>
+          <div className="p-3 bg-[#eef2ff] rounded">
+            <div className="text-xs text-[#666] mb-1">CDN size</div>
+            <div className="text-lg font-semibold">{formatBytes(cdnSize)}</div>
+            <div className="text-[11px] text-[#666]">
+              {cdnCount} CDN script{cdnCount !== 1 ? "s" : ""}
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 text-xs text-[#666]">
+          First-party: {formatBytes(firstPartySize)} ({firstPartyCount})
         </div>
       </section>
 
@@ -249,15 +295,58 @@ function IndexPopup() {
                   key={idx}
                   className="p-3 bg-[#f5f5f5] rounded text-xs"
                 >
-                  <div className="font-semibold mb-1 break-all">
-                    {fileName}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-semibold mb-1 break-all">{fileName}</div>
+                    <div className="flex gap-1 text-[10px]">
+                      <span className={`px-2 py-0.5 rounded ${script.firstParty ? "bg-[#e0f2fe] text-[#0369a1]" : "bg-[#fef3c7] text-[#b45309]"}`}>
+                        {script.firstParty ? "First" : "Third"}
+                      </span>
+                      {script.isCDN && <span className="px-2 py-0.5 rounded bg-[#ede9fe] text-[#6b21a8]">CDN</span>}
+                      {script.module && <span className="px-2 py-0.5 rounded bg-[#f0f9ff] text-[#075985]">module</span>}
+                      {script.async && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#15803d]">async</span>}
+                      {script.defer && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#166534]">defer</span>}
+                    </div>
                   </div>
                   <div className="flex justify-between mb-1">
                     <span>{formatBytes(script.size)}</span>
                     <span className="text-[#666]">{percentage.toFixed(1)}%</span>
                   </div>
                   <div className="text-[11px] text-[#666]">
+                    Host: {getHost(script.src, script.host)}
+                  </div>
+                  <div className="text-[11px] text-[#666]">
                     Gzipped: {formatBytes(script.gzippedSize)}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {topThirdParty.length > 0 && (
+        <section className="mt-4">
+          <h3 className="m-0 mb-3 text-base font-semibold">
+            Top Third-Party Scripts
+          </h3>
+          <div className="flex flex-col gap-2">
+            {topThirdParty.map((script, idx) => {
+              const percentage = analysis.totalSize > 0 ? (script.size / analysis.totalSize) * 100 : 0
+              const fileName = script.src.split("/").pop() || script.src
+              return (
+                <div key={idx} className="p-3 bg-[#fff7ed] rounded text-xs">
+                  <div className="font-semibold mb-1 break-all">{fileName}</div>
+                  <div className="flex justify-between mb-1">
+                    <span>{formatBytes(script.size)}</span>
+                    <span className="text-[#666]">{percentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="text-[11px] text-[#666]">Host: {getHost(script.src, script.host)}</div>
+                  <div className="text-[11px] text-[#666]">Gzipped: {formatBytes(script.gzippedSize)}</div>
+                  <div className="flex gap-1 mt-1 text-[10px]">
+                    {script.isCDN && <span className="px-2 py-0.5 rounded bg-[#ede9fe] text-[#6b21a8]">CDN</span>}
+                    {script.module && <span className="px-2 py-0.5 rounded bg-[#f0f9ff] text-[#075985]">module</span>}
+                    {script.async && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#15803d]">async</span>}
+                    {script.defer && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#166534]">defer</span>}
                   </div>
                 </div>
               )
