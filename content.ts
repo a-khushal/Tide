@@ -136,6 +136,31 @@ function detectLibraries(): LibraryInfo[] {
     return libraries.sort((a, b) => a.name.localeCompare(b.name))
 }
 
+function inferGlobalKey(src: string): string | null {
+    try {
+        const url = new URL(src, window.location.href)
+        const file = url.pathname.split("/").pop() || ""
+        const base = file.split(".")[0] || ""
+        const cleaned = base.replace(/[^a-zA-Z0-9_$]/g, "")
+        return cleaned.length >= 3 ? cleaned : null
+    } catch {
+        return null
+    }
+}
+
+function isLikelyUnused(script: { firstParty: boolean; isCDN: boolean; src: string }): boolean {
+    if (script.firstParty) return false
+    const key = inferGlobalKey(script.src)
+    if (!key) return false
+    const win = window as any
+    try {
+        if (key in win) return false
+    } catch {
+        return false
+    }
+    return true
+}
+
 function collectPerformanceMetrics(): PerformanceMetrics {
     const metrics: PerformanceMetrics = {
         longTasks: 0,
@@ -267,6 +292,7 @@ function collectScriptInfo(): ScriptInfo[] {
         const attrs = scriptAttrMap.get(entry.name) || { async: false, defer: false, module: false }
         
         if (size > 0) {
+            const potentiallyUnused = isLikelyUnused({ firstParty, isCDN, src: entry.name })
             scripts.push({
                 src: entry.name,
                 size: size,
@@ -278,7 +304,8 @@ function collectScriptInfo(): ScriptInfo[] {
                 isCDN,
                 async: attrs.async,
                 defer: attrs.defer,
-                module: attrs.module
+                module: attrs.module,
+                potentiallyUnused
             })
         }
     }
@@ -312,6 +339,7 @@ function collectScriptInfo(): ScriptInfo[] {
                 const attrs = scriptAttrMap.get(src) || { async: false, defer: false, module: false }
                 
                 if (size > 0) {
+                    const potentiallyUnused = isLikelyUnused({ firstParty, isCDN, src })
                     scripts.push({
                         src: src,
                         size: size,
@@ -323,7 +351,8 @@ function collectScriptInfo(): ScriptInfo[] {
                         isCDN,
                         async: attrs.async,
                         defer: attrs.defer,
-                        module: attrs.module
+                        module: attrs.module,
+                        potentiallyUnused
                     })
                 }
             }
@@ -348,6 +377,7 @@ async function analyzePage(): Promise<AnalysisData> {
     const cdnScripts = scripts.filter(s => s.isCDN)
     const cdnCount = cdnScripts.length
     const cdnSize = cdnScripts.reduce((sum, s) => sum + s.size, 0)
+    const unusedScripts = scripts.filter(s => s.potentiallyUnused)
 
     return {
         scripts,

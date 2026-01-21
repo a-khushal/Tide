@@ -10,6 +10,7 @@ export interface ScriptInfo {
     async: boolean
     defer: boolean
     module: boolean
+    potentiallyUnused: boolean
 }
 
 export interface FrameworkInfo {

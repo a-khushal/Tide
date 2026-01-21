@@ -134,6 +134,8 @@ function IndexPopup() {
   const firstPartySize = analysis.firstPartySize ?? Math.max(0, totalSize - thirdPartySize)
   const firstPartyCount =
     analysis.firstPartyCount ?? (analysis.scripts?.filter((s) => s.firstParty).length || 0)
+  const unusedScripts = analysis.scripts.filter((s) => s.potentiallyUnused)
+  const topUnused = unusedScripts.sort((a, b) => b.size - a.size).slice(0, 5)
 
   const topThirdParty = analysis.scripts
     .filter((s) => !s.firstParty)
@@ -342,6 +344,37 @@ function IndexPopup() {
                   </div>
                   <div className="text-[11px] text-[#666]">Host: {getHost(script.src, script.host)}</div>
                   <div className="text-[11px] text-[#666]">Gzipped: {formatBytes(script.gzippedSize)}</div>
+                  <div className="flex gap-1 mt-1 text-[10px]">
+                    {script.isCDN && <span className="px-2 py-0.5 rounded bg-[#ede9fe] text-[#6b21a8]">CDN</span>}
+                    {script.module && <span className="px-2 py-0.5 rounded bg-[#f0f9ff] text-[#075985]">module</span>}
+                    {script.async && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#15803d]">async</span>}
+                    {script.defer && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#166534]">defer</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {topUnused.length > 0 && (
+        <section className="mt-4">
+          <h3 className="m-0 mb-1 text-base font-semibold">Potentially Unused (Heuristic)</h3>
+          <div className="text-[11px] text-[#b45309] mb-2">
+            True dead code analysis requires build-time tools; this is runtime detection only.
+          </div>
+          <div className="flex flex-col gap-2">
+            {topUnused.map((script, idx) => {
+              const fileName = script.src.split("/").pop() || script.src
+              const percentage = totalSize > 0 ? (script.size / totalSize) * 100 : 0
+              return (
+                <div key={idx} className="p-3 bg-[#fff7ed] rounded text-xs border border-[#fed7aa]">
+                  <div className="font-semibold mb-1 break-all">{fileName}</div>
+                  <div className="flex justify-between mb-1">
+                    <span>{formatBytes(script.size)}</span>
+                    <span className="text-[#666]">{percentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="text-[11px] text-[#666]">Host: {getHost(script.src, script.host)}</div>
                   <div className="flex gap-1 mt-1 text-[10px]">
                     {script.isCDN && <span className="px-2 py-0.5 rounded bg-[#ede9fe] text-[#6b21a8]">CDN</span>}
                     {script.module && <span className="px-2 py-0.5 rounded bg-[#f0f9ff] text-[#075985]">module</span>}
