@@ -178,7 +178,137 @@ function isUntrustedDomain(host: string, firstParty: boolean): boolean {
     return !trustedDomains.some(trusted => host.includes(trusted))
 }
 
-function detectSecurityIssues(scripts: ScriptInfo[], libraries: LibraryInfo[]): SecurityIssue[] {
+interface VulnerableVersion {
+    library: string
+    versions: string[]
+    severity: "high" | "medium" | "low"
+    description: string
+}
+
+const vulnerableVersions: VulnerableVersion[] = [
+    {
+        library: "jQuery",
+        versions: ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0", "1.11.0", "1.12.0", "2.0.0", "2.1.0", "2.2.0", "3.0.0", "3.1.0", "3.2.0", "3.3.0", "3.4.0"],
+        severity: "high",
+        description: "jQuery versions before 3.5.0 have XSS vulnerabilities"
+    },
+    {
+        library: "Lodash",
+        versions: ["4.17.0", "4.17.1", "4.17.2", "4.17.3", "4.17.4", "4.17.5", "4.17.6", "4.17.7", "4.17.8", "4.17.9", "4.17.10", "4.17.11", "4.17.12", "4.17.13", "4.17.14", "4.17.15", "4.17.16", "4.17.17", "4.17.18", "4.17.19"],
+        severity: "high",
+        description: "Lodash versions before 4.17.21 have prototype pollution vulnerabilities"
+    },
+    {
+        library: "Moment.js",
+        versions: ["2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0", "2.11.0", "2.12.0", "2.13.0", "2.14.0", "2.15.0", "2.16.0", "2.17.0", "2.18.0", "2.19.0"],
+        severity: "medium",
+        description: "Moment.js versions before 2.29.0 have ReDoS vulnerabilities"
+    },
+    {
+        library: "Angular",
+        versions: ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0"],
+        severity: "high",
+        description: "AngularJS 1.x versions have multiple XSS and security vulnerabilities"
+    },
+    {
+        library: "React",
+        versions: ["0.0.0", "0.1.0", "0.2.0", "0.3.0", "0.4.0", "0.5.0", "0.6.0", "0.7.0", "0.8.0", "0.9.0", "0.10.0", "0.11.0", "0.12.0", "0.13.0", "0.14.0", "15.0.0", "15.1.0", "15.2.0", "15.3.0", "15.4.0", "15.5.0", "15.6.0"],
+        severity: "medium",
+        description: "React versions before 15.6.1 have XSS vulnerabilities"
+    }
+]
+
+function compareVersions(version1: string, version2: string): number {
+    const normalize = (v: string) => v.split('.').map(Number)
+    const v1parts = normalize(version1)
+    const v2parts = normalize(version2)
+    const maxLen = Math.max(v1parts.length, v2parts.length)
+    
+    for (let i = 0; i < maxLen; i++) {
+        const v1part = v1parts[i] || 0
+        const v2part = v2parts[i] || 0
+        if (v1part > v2part) return 1
+        if (v1part < v2part) return -1
+    }
+    return 0
+}
+
+function isVersionVulnerable(library: LibraryInfo, vulnerableVersions: VulnerableVersion[]): VulnerableVersion | null {
+    if (!library.version) return null
+    
+    const libVulns = vulnerableVersions.filter(v => 
+        v.library.toLowerCase() === library.name.toLowerCase()
+    )
+    
+    if (libVulns.length === 0) return null
+    
+    const libVersion = library.version.split('-')[0].trim()
+    
+    for (const vuln of libVulns) {
+        for (const vulnVersion of vuln.versions) {
+            if (libVersion === vulnVersion || libVersion.startsWith(vulnVersion + '.')) {
+                return vuln
+            }
+            if (compareVersions(libVersion, vulnVersion) <= 0) {
+                return vuln
+            }
+        }
+    }
+    
+    return null
+}
+
+async function checkScriptForEval(scriptSrc: string): Promise<boolean> {
+    if (!scriptSrc || scriptSrc.startsWith('data:') || scriptSrc.startsWith('blob:')) {
+        if (scriptSrc.startsWith('data:')) {
+            try {
+                const decoded = decodeURIComponent(scriptSrc.split(',')[1] || '')
+                const evalPatterns = [
+                    /\beval\s*\(/,
+                    /\bFunction\s*\(/,
+                    /\bnew\s+Function\s*\(/,
+                    /\bsetTimeout\s*\(\s*["']/,
+                    /\bsetInterval\s*\(\s*["']/,
+                    /\bexecScript\s*\(/
+                ]
+                return evalPatterns.some(pattern => pattern.test(decoded))
+            } catch {
+                return false
+            }
+        }
+        return false
+    }
+    
+    try {
+        const scriptUrl = new URL(scriptSrc, window.location.href)
+        const isSameOrigin = scriptUrl.origin === window.location.origin
+        
+        if (!isSameOrigin) {
+            return false
+        }
+        
+        const response = await fetch(scriptSrc).catch(() => null)
+        if (!response || !response.ok) {
+            return false
+        }
+        
+        const text = await response.text()
+        const evalPatterns = [
+            /\beval\s*\(/,
+            /\bFunction\s*\(/,
+            /\bnew\s+Function\s*\(/,
+            /\bsetTimeout\s*\(\s*["']/,
+            /\bsetInterval\s*\(\s*["']/,
+            /\bexecScript\s*\(/
+        ]
+        
+        return evalPatterns.some(pattern => pattern.test(text))
+    } catch {
+        return false
+    }
+}
+
+async function detectSecurityIssues(scripts: ScriptInfo[], libraries: LibraryInfo[], frameworks: FrameworkInfo[]): Promise<SecurityIssue[]> {
     const issues: SecurityIssue[] = []
     
     const untrustedScripts = scripts.filter(s => s.untrustedDomain)
@@ -189,6 +319,36 @@ function detectSecurityIssues(scripts: ScriptInfo[], libraries: LibraryInfo[]): 
             message: `${untrustedScripts.length} script${untrustedScripts.length !== 1 ? "s" : ""} loaded from untrusted domain${untrustedScripts.length !== 1 ? "s" : ""}`,
             script: untrustedScripts[0]?.src
         })
+    }
+    
+    const allDependencies = [
+        ...libraries.map(l => ({ name: l.name, version: l.version })),
+        ...frameworks.map(f => ({ name: f.name, version: f.version }))
+    ]
+    
+    for (const dep of allDependencies) {
+        const depInfo: LibraryInfo = { name: dep.name, version: dep.version, detected: true }
+        const vuln = isVersionVulnerable(depInfo, vulnerableVersions)
+        if (vuln) {
+            issues.push({
+                type: "vulnerable_version",
+                severity: vuln.severity,
+                message: `${dep.name} version ${dep.version} has known vulnerabilities: ${vuln.description}`,
+                library: dep.name,
+                version: dep.version || undefined
+            })
+        }
+    }
+    
+    for (const script of scripts) {
+        if (script.hasEval) {
+            issues.push({
+                type: "eval_usage",
+                severity: "high",
+                message: `Script uses eval() or similar dangerous functions: ${script.src.split("/").pop()}`,
+                script: script.src
+            })
+        }
     }
     
     const meta = document.querySelector('meta[http-equiv="Content-Security-Policy"]')
@@ -269,6 +429,40 @@ function collectScriptInfo(): ScriptInfo[] {
     const scripts: ScriptInfo[] = []
     const perfEntries = performance.getEntriesByType("resource") as PerformanceResourceTiming[]
     const scriptTags = Array.from(document.querySelectorAll("script[src]"))
+    const inlineScripts = Array.from(document.querySelectorAll("script:not([src])"))
+    
+    for (const inlineScript of inlineScripts) {
+        const text = inlineScript.textContent || inlineScript.innerHTML
+        if (text) {
+            const evalPatterns = [
+                /\beval\s*\(/,
+                /\bFunction\s*\(/,
+                /\bnew\s+Function\s*\(/,
+                /\bsetTimeout\s*\(\s*["']/,
+                /\bsetInterval\s*\(\s*["']/,
+                /\bexecScript\s*\(/
+            ]
+            const hasEval = evalPatterns.some(pattern => pattern.test(text))
+            if (hasEval) {
+                scripts.push({
+                    src: "inline",
+                    size: text.length,
+                    gzippedSize: text.length,
+                    loadTime: 0,
+                    parseTime: 0,
+                    firstParty: true,
+                    host: window.location.hostname,
+                    isCDN: false,
+                    async: false,
+                    defer: false,
+                    module: false,
+                    potentiallyUnused: false,
+                    hasEval: true,
+                    untrustedDomain: false
+                })
+            }
+        }
+    }
 
     const scriptAttrMap = new Map<string, { async: boolean; defer: boolean; module: boolean }>()
     for (const tag of scriptTags) {
@@ -413,11 +607,28 @@ function collectScriptInfo(): ScriptInfo[] {
     return scripts
 }
 
+async function checkScriptsForEval(scripts: ScriptInfo[]): Promise<void> {
+    const checkPromises = scripts.map(async (script) => {
+        if (script.src && !script.src.startsWith('data:') && !script.src.startsWith('blob:')) {
+            try {
+                const hasEval = await checkScriptForEval(script.src)
+                script.hasEval = hasEval
+            } catch {
+                script.hasEval = false
+            }
+        }
+    })
+    
+    await Promise.allSettled(checkPromises)
+}
+
 async function analyzePage(): Promise<AnalysisData> {
     const scripts = collectScriptInfo()
     const frameworks = detectFrameworks()
     const libraries = detectLibraries()
     const performance = collectPerformanceMetrics()
+
+    await checkScriptsForEval(scripts)
 
     const totalSize = scripts.reduce((sum, s) => sum + s.size, 0)
     const totalGzippedSize = scripts.reduce((sum, s) => sum + s.gzippedSize, 0)
@@ -430,7 +641,7 @@ async function analyzePage(): Promise<AnalysisData> {
     const cdnSize = cdnScripts.reduce((sum, s) => sum + s.size, 0)
     const unusedScripts = scripts.filter(s => s.potentiallyUnused)
 
-    const securityIssues = detectSecurityIssues(scripts, libraries)
+    const securityIssues = await detectSecurityIssues(scripts, libraries, frameworks)
 
     return {
         scripts,
