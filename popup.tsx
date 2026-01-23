@@ -15,11 +15,213 @@ function formatTime(ms: number): string {
   return (Math.round(ms / 100) / 10).toFixed(1) + " s"
 }
 
+function generateRecommendations(analysis: AnalysisData): string[] {
+  const recommendations: string[] = []
+  
+  if (analysis.totalSize > 2 * 1024 * 1024) {
+    recommendations.push("Total JS size exceeds 2MB. Consider code splitting and lazy loading.")
+  }
+  
+  if (analysis.thirdPartySize > analysis.totalSize * 0.5) {
+    recommendations.push("Third-party scripts account for more than 50% of total size. Review and remove unused dependencies.")
+  }
+  
+  if (analysis.performance.longTasks > 5) {
+    recommendations.push("High number of long tasks detected. Consider breaking up heavy computations.")
+  }
+  
+  if (analysis.performance.mainThreadBlockingTime > 300) {
+    recommendations.push("Main thread blocking time is high. Optimize synchronous operations and use web workers.")
+  }
+  
+  const unusedCount = analysis.scripts.filter(s => s.potentiallyUnused).length
+  if (unusedCount > 0) {
+    recommendations.push(`${unusedCount} potentially unused scripts detected. Verify and remove if unnecessary.`)
+  }
+  
+  if (analysis.securityIssues.length > 0) {
+    const highSeverity = analysis.securityIssues.filter(i => i.severity === "high").length
+    if (highSeverity > 0) {
+      recommendations.push(`${highSeverity} high-severity security issues found. Address immediately.`)
+    }
+  }
+  
+  const nonAsyncScripts = analysis.scripts.filter(s => !s.async && !s.defer && !s.module).length
+  if (nonAsyncScripts > 3) {
+    recommendations.push("Multiple blocking scripts detected. Use async/defer attributes to improve load performance.")
+  }
+  
+  if (analysis.totalGzippedSize / analysis.totalSize > 0.4) {
+    recommendations.push("Compression ratio is low. Ensure gzip/brotli compression is enabled on the server.")
+  }
+  
+  return recommendations
+}
+
+function generateOptimizationTips(analysis: AnalysisData): string[] {
+  const tips: string[] = []
+  
+  if (analysis.totalSize > 1024 * 1024) {
+    tips.push("Use dynamic imports for code splitting")
+    tips.push("Implement route-based lazy loading")
+    tips.push("Consider tree-shaking unused code")
+  }
+  
+  if (analysis.thirdPartySize > 0) {
+    tips.push("Audit third-party scripts regularly")
+    tips.push("Use resource hints (preconnect, dns-prefetch) for CDN resources")
+    tips.push("Consider self-hosting critical third-party libraries")
+  }
+  
+  if (analysis.performance.scriptParseTime > 100) {
+    tips.push("Reduce parse time by minimizing inline scripts")
+    tips.push("Use module scripts to enable better caching")
+  }
+  
+  if (analysis.scripts.length > 20) {
+    tips.push("Bundle scripts to reduce HTTP requests")
+    tips.push("Use HTTP/2 server push for critical resources")
+  }
+  
+  return tips
+}
+
+function exportAsJSON(analysis: AnalysisData, history: DomainHistory | null, url: string) {
+  const recommendations = generateRecommendations(analysis)
+  const optimizationTips = generateOptimizationTips(analysis)
+  
+  const report = {
+    url,
+    timestamp: new Date().toISOString(),
+    analysis: {
+      ...analysis,
+      timestamp: new Date(analysis.timestamp).toISOString()
+    },
+    history: history ? {
+      ...history,
+      lastUpdated: new Date(history.lastUpdated).toISOString(),
+      entries: history.entries.map(e => ({
+        ...e,
+        timestamp: new Date(e.timestamp).toISOString()
+      }))
+    } : null,
+    recommendations,
+    optimizationTips,
+    summary: {
+      totalSize: formatBytes(analysis.totalSize),
+      totalGzippedSize: formatBytes(analysis.totalGzippedSize),
+      scriptCount: analysis.scripts.length,
+      thirdPartyPercentage: ((analysis.thirdPartySize / analysis.totalSize) * 100).toFixed(1) + "%",
+      frameworks: analysis.frameworks.map(f => f.name).join(", "),
+      libraries: analysis.libraries.map(l => l.name).join(", ")
+    }
+  }
+  
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" })
+  const url_blob = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url_blob
+  a.download = `tide-report-${new Date().toISOString().split("T")[0]}.json`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url_blob)
+}
+
+function exportAsText(analysis: AnalysisData, history: DomainHistory | null, url: string) {
+  const recommendations = generateRecommendations(analysis)
+  const optimizationTips = generateOptimizationTips(analysis)
+  
+  let report = `TIDE - JavaScript Analysis Report\n`
+  report += `Generated: ${new Date().toISOString()}\n`
+  report += `URL: ${url}\n\n`
+  report += `=== SUMMARY ===\n`
+  report += `Total Size: ${formatBytes(analysis.totalSize)}\n`
+  report += `Gzipped Size: ${formatBytes(analysis.totalGzippedSize)}\n`
+  report += `Scripts: ${analysis.scripts.length}\n`
+  report += `Third-Party: ${formatBytes(analysis.thirdPartySize)} (${((analysis.thirdPartySize / analysis.totalSize) * 100).toFixed(1)}%)\n`
+  report += `First-Party: ${formatBytes(analysis.firstPartySize)} (${((analysis.firstPartySize / analysis.totalSize) * 100).toFixed(1)}%)\n\n`
+  
+  if (analysis.frameworks.length > 0) {
+    report += `=== FRAMEWORKS ===\n`
+    analysis.frameworks.forEach(f => {
+      report += `- ${f.name}${f.version ? ` v${f.version}` : ""}\n`
+    })
+    report += `\n`
+  }
+  
+  if (analysis.libraries.length > 0) {
+    report += `=== LIBRARIES ===\n`
+    analysis.libraries.forEach(l => {
+      report += `- ${l.name}${l.version ? ` v${l.version}` : ""}\n`
+    })
+    report += `\n`
+  }
+  
+  report += `=== PERFORMANCE ===\n`
+  report += `Long Tasks: ${analysis.performance.longTasks}\n`
+  report += `Time to Interactive: ${formatTime(analysis.performance.timeToInteractive)}\n`
+  report += `Load Time: ${formatTime(analysis.performance.scriptLoadTime)}\n`
+  report += `Parse Time: ${formatTime(analysis.performance.scriptParseTime)}\n`
+  if (analysis.performance.mainThreadBlockingTime > 0) {
+    report += `Main Thread Blocking: ${formatTime(analysis.performance.mainThreadBlockingTime)}\n`
+  }
+  report += `\n`
+  
+  if (recommendations.length > 0) {
+    report += `=== RECOMMENDATIONS ===\n`
+    recommendations.forEach((rec, i) => {
+      report += `${i + 1}. ${rec}\n`
+    })
+    report += `\n`
+  }
+  
+  if (optimizationTips.length > 0) {
+    report += `=== OPTIMIZATION TIPS ===\n`
+    optimizationTips.forEach((tip, i) => {
+      report += `${i + 1}. ${tip}\n`
+    })
+    report += `\n`
+  }
+  
+  if (analysis.securityIssues.length > 0) {
+    report += `=== SECURITY ISSUES ===\n`
+    analysis.securityIssues.forEach(issue => {
+      report += `[${issue.severity.toUpperCase()}] ${issue.type}: ${issue.message}\n`
+      if (issue.script) report += `  Script: ${issue.script}\n`
+    })
+    report += `\n`
+  }
+  
+  if (analysis.scripts.length > 0) {
+    report += `=== TOP SCRIPTS BY SIZE ===\n`
+    const topScripts = [...analysis.scripts].sort((a, b) => b.size - a.size).slice(0, 10)
+    topScripts.forEach((script, i) => {
+      const fileName = script.src.split("/").pop() || script.src
+      const percentage = ((script.size / analysis.totalSize) * 100).toFixed(1)
+      report += `${i + 1}. ${fileName} - ${formatBytes(script.size)} (${percentage}%)\n`
+      report += `   Host: ${script.host}\n`
+      report += `   ${script.firstParty ? "First-party" : "Third-party"}${script.isCDN ? ", CDN" : ""}\n`
+    })
+  }
+  
+  const blob = new Blob([report], { type: "text/plain" })
+  const url_blob = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url_blob
+  a.download = `tide-report-${new Date().toISOString().split("T")[0]}.txt`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url_blob)
+}
+
 function IndexPopup() {
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<DomainHistory | null>(null)
+  const [currentUrl, setCurrentUrl] = useState<string>("")
 
   useEffect(() => {
     async function fetchAnalysis() {
@@ -42,6 +244,7 @@ function IndexPopup() {
 
             if (response?.data) {
               setAnalysis(response.data)
+              setCurrentUrl(tab.url)
               setLoading(false)
               return
             }
@@ -78,6 +281,7 @@ function IndexPopup() {
 
                     if (pollResponse?.data) {
                       setAnalysis(pollResponse.data)
+                      setCurrentUrl(tab.url || "")
                       const domain = tab.url ? new URL(tab.url).hostname : ""
                       chrome.runtime.sendMessage({ type: "GET_HISTORY", domain }, (histResponse) => {
                         if (histResponse?.data) {
@@ -161,9 +365,41 @@ function IndexPopup() {
     }
   }
 
+  const handleExportJSON = () => {
+    if (analysis && currentUrl) {
+      exportAsJSON(analysis, history, currentUrl)
+    }
+  }
+
+  const handleExportText = () => {
+    if (analysis && currentUrl) {
+      exportAsText(analysis, history, currentUrl)
+    }
+  }
+
   return (
     <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border bg-[#2d2d2d]">
-      <h2 className="m-0 mb-5 text-base font-semibold text-[#e8e8e8] border-b border-[#404040] pb-2">Tide</h2>
+      <div className="flex items-center justify-between mb-5 border-b border-[#404040] pb-2">
+        <h2 className="m-0 text-base font-semibold text-[#e8e8e8]">Tide</h2>
+        {analysis && (
+          <div className="flex gap-1">
+            <button
+              onClick={handleExportJSON}
+              className="px-2 py-1 text-[10px] bg-[#363636] border border-[#404040] rounded text-[#b0b0b0] hover:bg-[#404040] hover:text-[#e8e8e8] transition-colors"
+              title="Export as JSON"
+            >
+              JSON
+            </button>
+            <button
+              onClick={handleExportText}
+              className="px-2 py-1 text-[10px] bg-[#363636] border border-[#404040] rounded text-[#b0b0b0] hover:bg-[#404040] hover:text-[#e8e8e8] transition-colors"
+              title="Export as Text"
+            >
+              TXT
+            </button>
+          </div>
+        )}
+      </div>
 
       <section className="mb-5">
         <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">
@@ -457,6 +693,43 @@ function IndexPopup() {
           </div>
         </section>
       )}
+
+      {analysis && (() => {
+        const recommendations = generateRecommendations(analysis)
+        const optimizationTips = generateOptimizationTips(analysis)
+        
+        if (recommendations.length === 0 && optimizationTips.length === 0) return null
+        
+        return (
+          <section className="mt-4">
+            <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">Recommendations</h3>
+            {recommendations.length > 0 && (
+              <div className="mb-3">
+                <div className="text-[10px] text-[#808080] mb-1.5 uppercase tracking-wide">Performance</div>
+                <div className="flex flex-col gap-1.5">
+                  {recommendations.map((rec, idx) => (
+                    <div key={idx} className="p-2 bg-[#1e3a5f] border border-[#4a7ba7] rounded text-xs text-[#7db3d3]">
+                      {rec}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {optimizationTips.length > 0 && (
+              <div>
+                <div className="text-[10px] text-[#808080] mb-1.5 uppercase tracking-wide">Optimization Tips</div>
+                <div className="flex flex-col gap-1.5">
+                  {optimizationTips.map((tip, idx) => (
+                    <div key={idx} className="p-2 bg-[#1e3a2e] border border-[#4a7c5a] rounded text-xs text-[#7db892]">
+                      {tip}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )
+      })()}
     </div>
   )
 }
