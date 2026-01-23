@@ -110,20 +110,23 @@ function IndexPopup() {
 
   if (loading) {
     return (
-      <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border">
-        <h2 className="m-0 mb-4">Analyzing page...</h2>
-        <div>Collecting JavaScript metrics...</div>
+      <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border bg-[#2d2d2d]">
+        <h2 className="m-0 mb-4 text-base font-semibold text-[#e8e8e8] border-b border-[#404040] pb-2">Tide</h2>
+        <div className="text-sm text-[#b0b0b0]">Analyzing page...</div>
+        <div className="mt-1 text-xs text-[#808080]">Collecting JavaScript metrics...</div>
       </div>
     )
   }
 
   if (error || !analysis) {
     return (
-      <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border">
-        <h2 className="m-0 mb-4">Tide</h2>
-        <div className="text-[#d32f2f]">{error || "No data available"}</div>
-        <div className="mt-2 text-xs text-[#666]">
-          Try refreshing the page and opening this popup again.
+      <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border bg-[#2d2d2d]">
+        <h2 className="m-0 mb-4 text-base font-semibold text-[#e8e8e8] border-b border-[#404040] pb-2">Tide</h2>
+        <div className="p-3 bg-[#3a2d1a] border border-[#8b6914] rounded">
+          <div className="text-sm text-[#d4a574] font-medium mb-1">{error || "No data available"}</div>
+          <div className="text-xs text-[#808080]">
+            Try refreshing the page and opening this popup again.
+          </div>
         </div>
       </div>
     )
@@ -159,67 +162,67 @@ function IndexPopup() {
   }
 
   return (
-    <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border">
-      <h2 className="m-0 mb-5 text-xl">Tide</h2>
+    <div className="p-4 w-[320px] h-[480px] overflow-y-auto box-border bg-[#2d2d2d]">
+      <h2 className="m-0 mb-5 text-base font-semibold text-[#e8e8e8] border-b border-[#404040] pb-2">Tide</h2>
 
-      <section className="mb-6">
-        <h3 className="m-0 mb-3 text-base font-semibold">
+      <section className="mb-5">
+        <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">
           Size Tracking
         </h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-[#f5f5f5] rounded">
-            <div className="text-xs text-[#666] mb-1">Total Size</div>
-            <div className="text-lg font-semibold">{formatBytes(analysis.totalSize)}</div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-3 bg-[#363636] border border-[#404040] rounded">
+            <div className="text-[10px] text-[#808080] mb-1 uppercase tracking-wide">Total Size</div>
+            <div className="text-base font-mono font-semibold text-[#e8e8e8]">{formatBytes(analysis.totalSize)}</div>
           </div>
-          <div className="p-3 bg-[#f5f5f5] rounded">
-            <div className="text-xs text-[#666] mb-1">Gzipped</div>
-            <div className="text-lg font-semibold">{formatBytes(analysis.totalGzippedSize)}</div>
+          <div className="p-3 bg-[#363636] border border-[#404040] rounded">
+            <div className="text-[10px] text-[#808080] mb-1 uppercase tracking-wide">Gzipped</div>
+            <div className="text-base font-mono font-semibold text-[#e8e8e8]">{formatBytes(analysis.totalGzippedSize)}</div>
           </div>
         </div>
-        <div className="mt-3 text-xs text-[#666]">
+        <div className="mt-2 text-xs text-[#b0b0b0]">
           {analysis.scripts.length} script{analysis.scripts.length !== 1 ? "s" : ""} detected
         </div>
       </section>
 
-      <section className="mb-6">
-        <h3 className="m-0 mb-3 text-base font-semibold">Third-Party Analysis</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-[#eef2ff] rounded">
-            <div className="text-xs text-[#666] mb-1">Third-party size</div>
-            <div className="text-lg font-semibold">{formatBytes(thirdPartySize)}</div>
-            <div className="text-[11px] text-[#666]">
+      <section className="mb-5">
+        <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">Third-Party Analysis</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-3 bg-[#363636] border border-[#404040] rounded">
+            <div className="text-[10px] text-[#808080] mb-1 uppercase tracking-wide">Third-party</div>
+            <div className="text-base font-mono font-semibold text-[#e8e8e8]">{formatBytes(thirdPartySize)}</div>
+            <div className="text-[10px] text-[#b0b0b0] mt-1">
               {thirdPartyCount} script{thirdPartyCount !== 1 ? "s" : ""}
             </div>
           </div>
-          <div className="p-3 bg-[#eef2ff] rounded">
-            <div className="text-xs text-[#666] mb-1">CDN size</div>
-            <div className="text-lg font-semibold">{formatBytes(cdnSize)}</div>
-            <div className="text-[11px] text-[#666]">
-              {cdnCount} CDN script{cdnCount !== 1 ? "s" : ""}
+          <div className="p-3 bg-[#363636] border border-[#404040] rounded">
+            <div className="text-[10px] text-[#808080] mb-1 uppercase tracking-wide">CDN</div>
+            <div className="text-base font-mono font-semibold text-[#e8e8e8]">{formatBytes(cdnSize)}</div>
+            <div className="text-[10px] text-[#b0b0b0] mt-1">
+              {cdnCount} script{cdnCount !== 1 ? "s" : ""}
             </div>
           </div>
         </div>
-        <div className="mt-3 text-xs text-[#666]">
-          First-party: {formatBytes(firstPartySize)} ({firstPartyCount})
+        <div className="mt-2 p-2 bg-[#363636] border border-[#404040] rounded">
+          <div className="text-xs text-[#b0b0b0]">
+            First-party: <span className="font-mono font-semibold text-[#e8e8e8]">{formatBytes(firstPartySize)}</span> ({firstPartyCount})
+          </div>
         </div>
       </section>
 
       {analysis.frameworks.length > 0 && (
-        <section className="mb-6">
-          <h3 className="m-0 mb-3 text-base font-semibold">
+        <section className="mb-5">
+          <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">
             Frameworks
           </h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {analysis.frameworks.map((fw) => (
               <div
                 key={fw.name}
-                className="px-3 py-2 bg-[#e3f2fd] rounded text-sm"
+                className="px-2 py-1 bg-[#1e3a5f] border border-[#4a7ba7] rounded text-xs text-[#7db3d3]"
               >
-                <div className="font-semibold">{fw.name}</div>
+                <span className="font-medium">{fw.name}</span>
                 {fw.version && (
-                  <div className="text-[11px] text-[#666] mt-0.5">
-                    v{fw.version}
-                  </div>
+                  <span className="ml-1 font-mono text-[10px] opacity-75">v{fw.version}</span>
                 )}
               </div>
             ))}
@@ -228,21 +231,19 @@ function IndexPopup() {
       )}
 
       {analysis.libraries.length > 0 && (
-        <section className="mb-6">
-          <h3 className="m-0 mb-3 text-base font-semibold">
+        <section className="mb-5">
+          <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">
             Top Libraries
           </h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {analysis.libraries.map((lib) => (
               <div
                 key={lib.name}
-                className="px-3 py-2 bg-[#f3e5f5] rounded text-sm"
+                className="px-2 py-1 bg-[#1e3a2e] border border-[#4a7c5a] rounded text-xs text-[#7db892]"
               >
-                <div className="font-semibold">{lib.name}</div>
+                <span className="font-medium">{lib.name}</span>
                 {lib.version && (
-                  <div className="text-[11px] text-[#666] mt-0.5">
-                    v{lib.version}
-                  </div>
+                  <span className="ml-1 font-mono text-[10px] opacity-75">v{lib.version}</span>
                 )}
               </div>
             ))}
@@ -250,40 +251,40 @@ function IndexPopup() {
         </section>
       )}
 
-      <section className="mb-6">
-        <h3 className="m-0 mb-3 text-base font-semibold">
+      <section className="mb-5">
+        <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">
           Performance Metrics
         </h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-[#fff3e0] rounded">
-            <div className="text-xs text-[#666] mb-1">Long Tasks</div>
-            <div className="text-lg font-semibold">{analysis.performance.longTasks}</div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="p-2 bg-[#363636] border border-[#404040] rounded">
+            <div className="text-[10px] text-[#808080] mb-1 uppercase tracking-wide">Long Tasks</div>
+            <div className="text-sm font-mono font-semibold text-[#e8e8e8]">{analysis.performance.longTasks}</div>
           </div>
-          <div className="p-3 bg-[#fff3e0] rounded">
-            <div className="text-xs text-[#666] mb-1">TTI</div>
-            <div className="text-lg font-semibold">
+          <div className="p-2 bg-[#363636] border border-[#404040] rounded">
+            <div className="text-[10px] text-[#808080] mb-1 uppercase tracking-wide">TTI</div>
+            <div className="text-sm font-mono font-semibold text-[#e8e8e8]">
               {formatTime(analysis.performance.timeToInteractive)}
             </div>
           </div>
-          <div className="p-3 bg-[#fff3e0] rounded">
-            <div className="text-xs text-[#666] mb-1">Load Time</div>
-            <div className="text-lg font-semibold">
+          <div className="p-2 bg-[#363636] border border-[#404040] rounded">
+            <div className="text-[10px] text-[#808080] mb-1 uppercase tracking-wide">Load Time</div>
+            <div className="text-sm font-mono font-semibold text-[#e8e8e8]">
               {formatTime(analysis.performance.scriptLoadTime)}
             </div>
           </div>
-          <div className="p-3 bg-[#fff3e0] rounded">
-            <div className="text-xs text-[#666] mb-1">Parse Time</div>
-            <div className="text-lg font-semibold">
+          <div className="p-2 bg-[#363636] border border-[#404040] rounded">
+            <div className="text-[10px] text-[#808080] mb-1 uppercase tracking-wide">Parse Time</div>
+            <div className="text-sm font-mono font-semibold text-[#e8e8e8]">
               {formatTime(analysis.performance.scriptParseTime)}
             </div>
           </div>
         </div>
         {analysis.performance.mainThreadBlockingTime > 0 && (
-          <div className="mt-3 p-3 bg-[#ffebee] rounded">
-            <div className="text-xs text-[#666] mb-1">
+          <div className="mt-2 p-2 bg-[#3a2d1a] border border-[#8b6914] rounded">
+            <div className="text-[10px] text-[#d4a574] mb-1 uppercase tracking-wide font-medium">
               Main Thread Blocking
             </div>
-            <div className="text-base font-semibold text-[#c62828]">
+            <div className="text-sm font-mono font-semibold text-[#d4a574]">
               {formatTime(analysis.performance.mainThreadBlockingTime)}
             </div>
           </div>
@@ -292,39 +293,39 @@ function IndexPopup() {
 
       {topScripts.length > 0 && (
         <section>
-          <h3 className="m-0 mb-3 text-base font-semibold">
+          <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">
             Top Scripts by Size
           </h3>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             {topScripts.map((script, idx) => {
               const percentage = analysis.totalSize > 0 ? (script.size / analysis.totalSize) * 100 : 0
               const fileName = script.src.split("/").pop() || script.src
-              return (
-                <div
+  return (
+    <div
                   key={idx}
-                  className="p-3 bg-[#f5f5f5] rounded text-xs"
+                  className="p-2 bg-[#363636] border border-[#404040] rounded text-xs"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="font-semibold mb-1 break-all">{fileName}</div>
-                    <div className="flex gap-1 text-[10px]">
-                      <span className={`px-2 py-0.5 rounded ${script.firstParty ? "bg-[#e0f2fe] text-[#0369a1]" : "bg-[#fef3c7] text-[#b45309]"}`}>
-                        {script.firstParty ? "First" : "Third"}
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="font-medium break-all text-[#e8e8e8]">{fileName}</div>
+                    <div className="flex gap-1 text-[9px] flex-shrink-0">
+                      <span className={`px-1.5 py-0.5 rounded border ${script.firstParty ? "bg-[#1e3a5f] border-[#4a7ba7] text-[#7db3d3]" : "bg-[#3a2d1a] border-[#8b6914] text-[#d4a574]"}`}>
+                        {script.firstParty ? "1st" : "3rd"}
                       </span>
-                      {script.isCDN && <span className="px-2 py-0.5 rounded bg-[#ede9fe] text-[#6b21a8]">CDN</span>}
-                      {script.module && <span className="px-2 py-0.5 rounded bg-[#f0f9ff] text-[#075985]">module</span>}
-                      {script.async && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#15803d]">async</span>}
-                      {script.defer && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#166534]">defer</span>}
+                      {script.isCDN && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">CDN</span>}
+                      {script.module && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">M</span>}
+                      {script.async && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">A</span>}
+                      {script.defer && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">D</span>}
                     </div>
                   </div>
                   <div className="flex justify-between mb-1">
-                    <span>{formatBytes(script.size)}</span>
-                    <span className="text-[#666]">{percentage.toFixed(1)}%</span>
+                    <span className="font-mono text-[#e8e8e8]">{formatBytes(script.size)}</span>
+                    <span className="text-[#b0b0b0]">{percentage.toFixed(1)}%</span>
                   </div>
-                  <div className="text-[11px] text-[#666]">
-                    Host: {getHost(script.src, script.host)}
+                  <div className="text-[10px] text-[#808080] font-mono">
+                    {getHost(script.src, script.host)}
                   </div>
-                  <div className="text-[11px] text-[#666]">
-                    Gzipped: {formatBytes(script.gzippedSize)}
+                  <div className="text-[10px] text-[#808080]">
+                    Gzipped: <span className="font-mono">{formatBytes(script.gzippedSize)}</span>
                   </div>
                 </div>
               )
@@ -335,27 +336,29 @@ function IndexPopup() {
 
       {topThirdParty.length > 0 && (
         <section className="mt-4">
-          <h3 className="m-0 mb-3 text-base font-semibold">
+          <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">
             Top Third-Party Scripts
           </h3>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             {topThirdParty.map((script, idx) => {
               const percentage = analysis.totalSize > 0 ? (script.size / analysis.totalSize) * 100 : 0
               const fileName = script.src.split("/").pop() || script.src
               return (
-                <div key={idx} className="p-3 bg-[#fff7ed] rounded text-xs">
-                  <div className="font-semibold mb-1 break-all">{fileName}</div>
+                <div key={idx} className="p-2 bg-[#3a2d1a] border border-[#8b6914] rounded text-xs">
+                  <div className="font-medium mb-1 break-all text-[#e8e8e8]">{fileName}</div>
                   <div className="flex justify-between mb-1">
-                    <span>{formatBytes(script.size)}</span>
-                    <span className="text-[#666]">{percentage.toFixed(1)}%</span>
+                    <span className="font-mono text-[#e8e8e8]">{formatBytes(script.size)}</span>
+                    <span className="text-[#b0b0b0]">{percentage.toFixed(1)}%</span>
                   </div>
-                  <div className="text-[11px] text-[#666]">Host: {getHost(script.src, script.host)}</div>
-                  <div className="text-[11px] text-[#666]">Gzipped: {formatBytes(script.gzippedSize)}</div>
-                  <div className="flex gap-1 mt-1 text-[10px]">
-                    {script.isCDN && <span className="px-2 py-0.5 rounded bg-[#ede9fe] text-[#6b21a8]">CDN</span>}
-                    {script.module && <span className="px-2 py-0.5 rounded bg-[#f0f9ff] text-[#075985]">module</span>}
-                    {script.async && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#15803d]">async</span>}
-                    {script.defer && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#166534]">defer</span>}
+                  <div className="text-[10px] text-[#808080] font-mono">{getHost(script.src, script.host)}</div>
+                  <div className="text-[10px] text-[#808080]">
+                    Gzipped: <span className="font-mono">{formatBytes(script.gzippedSize)}</span>
+                  </div>
+                  <div className="flex gap-1 mt-1 text-[9px]">
+                    {script.isCDN && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">CDN</span>}
+                    {script.module && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">M</span>}
+                    {script.async && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">A</span>}
+                    {script.defer && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">D</span>}
                   </div>
                 </div>
               )
@@ -366,27 +369,27 @@ function IndexPopup() {
 
       {topUnused.length > 0 && (
         <section className="mt-4">
-          <h3 className="m-0 mb-1 text-base font-semibold">Potentially Unused (Heuristic)</h3>
-          <div className="text-[11px] text-[#b45309] mb-2">
+          <h3 className="m-0 mb-1 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">Potentially Unused</h3>
+          <div className="text-[10px] text-[#d4a574] bg-[#3a2d1a] border border-[#8b6914] rounded p-1.5 mb-2">
             True dead code analysis requires build-time tools; this is runtime detection only.
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             {topUnused.map((script, idx) => {
               const fileName = script.src.split("/").pop() || script.src
               const percentage = totalSize > 0 ? (script.size / totalSize) * 100 : 0
               return (
-                <div key={idx} className="p-3 bg-[#fff7ed] rounded text-xs border border-[#fed7aa]">
-                  <div className="font-semibold mb-1 break-all">{fileName}</div>
+                <div key={idx} className="p-2 bg-[#3a2d1a] border border-[#8b6914] rounded text-xs">
+                  <div className="font-medium mb-1 break-all text-[#e8e8e8]">{fileName}</div>
                   <div className="flex justify-between mb-1">
-                    <span>{formatBytes(script.size)}</span>
-                    <span className="text-[#666]">{percentage.toFixed(1)}%</span>
+                    <span className="font-mono text-[#e8e8e8]">{formatBytes(script.size)}</span>
+                    <span className="text-[#b0b0b0]">{percentage.toFixed(1)}%</span>
                   </div>
-                  <div className="text-[11px] text-[#666]">Host: {getHost(script.src, script.host)}</div>
-                  <div className="flex gap-1 mt-1 text-[10px]">
-                    {script.isCDN && <span className="px-2 py-0.5 rounded bg-[#ede9fe] text-[#6b21a8]">CDN</span>}
-                    {script.module && <span className="px-2 py-0.5 rounded bg-[#f0f9ff] text-[#075985]">module</span>}
-                    {script.async && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#15803d]">async</span>}
-                    {script.defer && <span className="px-2 py-0.5 rounded bg-[#ecfdf3] text-[#166534]">defer</span>}
+                  <div className="text-[10px] text-[#808080] font-mono">{getHost(script.src, script.host)}</div>
+                  <div className="flex gap-1 mt-1 text-[9px]">
+                    {script.isCDN && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">CDN</span>}
+                    {script.module && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">M</span>}
+                    {script.async && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">A</span>}
+                    {script.defer && <span className="px-1.5 py-0.5 rounded bg-[#363636] border border-[#404040] text-[#b0b0b0]">D</span>}
                   </div>
                 </div>
               )
@@ -397,18 +400,18 @@ function IndexPopup() {
 
       {analysis.securityIssues && analysis.securityIssues.length > 0 && (
         <section className="mt-4">
-          <h3 className="m-0 mb-3 text-base font-semibold">Security Issues</h3>
-          <div className="flex flex-col gap-2">
+          <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">Security Issues</h3>
+          <div className="flex flex-col gap-1.5">
             {analysis.securityIssues.map((issue, idx) => {
-              const severityColor = issue.severity === "high" ? "bg-[#fee2e2] text-[#991b1b]" : 
-                                    issue.severity === "medium" ? "bg-[#fef3c7] text-[#b45309]" : 
-                                    "bg-[#f0f9ff] text-[#075985]"
+              const severityColor = issue.severity === "high" ? "bg-[#3a1f1f] border-[#8b4a4a] text-[#d4a5a5]" : 
+                                    issue.severity === "medium" ? "bg-[#3a2d1a] border-[#8b6914] text-[#d4a574]" : 
+                                    "bg-[#1e3a5f] border-[#4a7ba7] text-[#7db3d3]"
               return (
-                <div key={idx} className={`p-3 rounded text-xs border ${severityColor}`}>
-                  <div className="font-semibold mb-1">{issue.type.replace("_", " ").toUpperCase()}</div>
+                <div key={idx} className={`p-2 rounded border text-xs ${severityColor}`}>
+                  <div className="font-semibold mb-1 text-[10px] uppercase tracking-wide">{issue.type.replace("_", " ")}</div>
                   <div className="text-[11px]">{issue.message}</div>
                   {issue.script && (
-                    <div className="text-[10px] mt-1 opacity-75 break-all">{issue.script}</div>
+                    <div className="text-[10px] mt-1 break-all font-mono opacity-75">{issue.script}</div>
                   )}
                 </div>
               )
@@ -419,8 +422,8 @@ function IndexPopup() {
 
       {history && history.entries.length > 0 && (
         <section className="mt-4">
-          <h3 className="m-0 mb-3 text-base font-semibold">History & Trends</h3>
-          <div className="text-xs text-[#666] mb-2">
+          <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">History & Trends</h3>
+          <div className="text-xs text-[#808080] mb-2">
             Last 30 days ({history.entries.length} entries)
           </div>
           {history.entries.length >= 2 && (() => {
@@ -430,24 +433,27 @@ function IndexPopup() {
             const sizePercent = previous.totalSize > 0 ? ((sizeDiff / previous.totalSize) * 100).toFixed(1) : "0"
             const scriptDiff = latest.scriptCount - previous.scriptCount
             return (
-              <div className="p-3 bg-[#f5f5f5] rounded text-xs">
+              <div className="p-2 bg-[#363636] border border-[#404040] rounded text-xs mb-2">
                 <div className="mb-2">
-                  <div className="text-[11px] text-[#666]">Size change</div>
-                  <div className={`font-semibold ${sizeDiff > 0 ? "text-[#dc2626]" : sizeDiff < 0 ? "text-[#16a34a]" : ""}`}>
+                  <div className="text-[10px] text-[#808080] mb-0.5 uppercase tracking-wide">Size change</div>
+                  <div className={`font-mono font-semibold ${sizeDiff > 0 ? "text-[#d4a5a5]" : sizeDiff < 0 ? "text-[#7db892]" : "text-[#e8e8e8]"}`}>
                     {sizeDiff > 0 ? "+" : ""}{formatBytes(sizeDiff)} ({sizePercent}%)
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] text-[#666]">Script count change</div>
-                  <div className={`font-semibold ${scriptDiff > 0 ? "text-[#dc2626]" : scriptDiff < 0 ? "text-[#16a34a]" : ""}`}>
+                  <div className="text-[10px] text-[#808080] mb-0.5 uppercase tracking-wide">Script count change</div>
+                  <div className={`font-mono font-semibold ${scriptDiff > 0 ? "text-[#d4a5a5]" : scriptDiff < 0 ? "text-[#7db892]" : "text-[#e8e8e8]"}`}>
                     {scriptDiff > 0 ? "+" : ""}{scriptDiff} scripts
                   </div>
                 </div>
               </div>
             )
           })()}
-          <div className="mt-2 text-[11px] text-[#666]">
-            Average: {formatBytes(Math.round(history.entries.reduce((sum, e) => sum + e.totalSize, 0) / history.entries.length))}
+          <div className="p-2 bg-[#363636] border border-[#404040] rounded">
+            <div className="text-[10px] text-[#808080] mb-0.5 uppercase tracking-wide">Average</div>
+            <div className="text-xs font-mono font-semibold text-[#e8e8e8]">
+              {formatBytes(Math.round(history.entries.reduce((sum, e) => sum + e.totalSize, 0) / history.entries.length))}
+            </div>
           </div>
         </section>
       )}
@@ -456,3 +462,4 @@ function IndexPopup() {
 }
 
 export default IndexPopup
+
