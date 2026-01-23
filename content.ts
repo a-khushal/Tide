@@ -1,10 +1,9 @@
-import type { PlasmoContentScript } from "plasmo"
-import type { AnalysisData, FrameworkInfo, LibraryInfo, PerformanceMetrics, ScriptInfo } from "./types"
+import type { AnalysisData, FrameworkInfo, LibraryInfo, PerformanceMetrics, ScriptInfo, SecurityIssue } from "./types"
 
-export const config: PlasmoContentScript = {
+export const config = {
     matches: ["<all_urls>"],
     all_frames: false
-}
+} as const
 
 let extensionActive = true
 
@@ -161,6 +160,52 @@ function isLikelyUnused(script: { firstParty: boolean; isCDN: boolean; src: stri
     return true
 }
 
+const trustedDomains = [
+    "googleapis.com",
+    "gstatic.com",
+    "cloudflare.com",
+    "jsdelivr.net",
+    "unpkg.com",
+    "cdnjs.com",
+    "cdnjs.cloudflare.com",
+    "bootstrapcdn.com",
+    "cdn.jsdelivr.net"
+]
+
+function isUntrustedDomain(host: string, firstParty: boolean): boolean {
+    if (firstParty) return false
+    if (!host) return true
+    return !trustedDomains.some(trusted => host.includes(trusted))
+}
+
+function detectSecurityIssues(scripts: ScriptInfo[], libraries: LibraryInfo[]): SecurityIssue[] {
+    const issues: SecurityIssue[] = []
+    
+    const untrustedScripts = scripts.filter(s => s.untrustedDomain)
+    if (untrustedScripts.length > 0) {
+        issues.push({
+            type: "untrusted_domain",
+            severity: "medium",
+            message: `${untrustedScripts.length} script${untrustedScripts.length !== 1 ? "s" : ""} loaded from untrusted domain${untrustedScripts.length !== 1 ? "s" : ""}`,
+            script: untrustedScripts[0]?.src
+        })
+    }
+    
+    const meta = document.querySelector('meta[http-equiv="Content-Security-Policy"]')
+    if (!meta) {
+        const cspHeader = document.querySelector('meta[name="csp"]')
+        if (!cspHeader) {
+            issues.push({
+                type: "csp_violation",
+                severity: "low",
+                message: "No Content Security Policy detected"
+            })
+        }
+    }
+    
+    return issues
+}
+
 function collectPerformanceMetrics(): PerformanceMetrics {
     const metrics: PerformanceMetrics = {
         longTasks: 0,
@@ -293,6 +338,7 @@ function collectScriptInfo(): ScriptInfo[] {
         
         if (size > 0) {
             const potentiallyUnused = isLikelyUnused({ firstParty, isCDN, src: entry.name })
+            const untrustedDomain = isUntrustedDomain(host, firstParty)
             scripts.push({
                 src: entry.name,
                 size: size,
@@ -305,7 +351,9 @@ function collectScriptInfo(): ScriptInfo[] {
                 async: attrs.async,
                 defer: attrs.defer,
                 module: attrs.module,
-                potentiallyUnused
+                potentiallyUnused,
+                hasEval: false,
+                untrustedDomain
             })
         }
     }
@@ -340,6 +388,7 @@ function collectScriptInfo(): ScriptInfo[] {
                 
                 if (size > 0) {
                     const potentiallyUnused = isLikelyUnused({ firstParty, isCDN, src })
+                    const untrustedDomain = isUntrustedDomain(host, firstParty)
                     scripts.push({
                         src: src,
                         size: size,
@@ -352,7 +401,9 @@ function collectScriptInfo(): ScriptInfo[] {
                         async: attrs.async,
                         defer: attrs.defer,
                         module: attrs.module,
-                        potentiallyUnused
+                        potentiallyUnused,
+                        hasEval: false,
+                        untrustedDomain
                     })
                 }
             }
@@ -379,6 +430,8 @@ async function analyzePage(): Promise<AnalysisData> {
     const cdnSize = cdnScripts.reduce((sum, s) => sum + s.size, 0)
     const unusedScripts = scripts.filter(s => s.potentiallyUnused)
 
+    const securityIssues = detectSecurityIssues(scripts, libraries)
+
     return {
         scripts,
         frameworks,
@@ -391,7 +444,9 @@ async function analyzePage(): Promise<AnalysisData> {
         firstPartyCount,
         thirdPartyCount,
         cdnCount,
-        cdnSize
+        cdnSize,
+        securityIssues,
+        timestamp: Date.now()
     }
 }
 

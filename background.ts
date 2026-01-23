@@ -1,12 +1,45 @@
-import type { AnalysisData } from "./types"
+import type { AnalysisData, DomainHistory, HistoryEntry } from "./types"
 const analysisCache = new Map<string, AnalysisData>()
+
+function getDomainFromUrl(url: string): string {
+    try {
+        return new URL(url).hostname
+    } catch {
+        return url
+    }
+}
+
+async function saveHistory(domain: string, data: AnalysisData): Promise<void> {
+    const historyKey = `history_${domain}`
+    return new Promise((resolve) => {
+        chrome.storage.local.get([historyKey], (result) => {
+            const existing: DomainHistory = result[historyKey] || { domain, entries: [], lastUpdated: 0 }
+            const entry: HistoryEntry = {
+                timestamp: data.timestamp,
+                totalSize: data.totalSize,
+                scriptCount: data.scripts.length,
+                thirdPartySize: data.thirdPartySize
+            }
+            
+            existing.entries.push(entry)
+            existing.entries = existing.entries.filter(e => Date.now() - e.timestamp < 30 * 24 * 60 * 60 * 1000)
+            existing.entries.sort((a, b) => b.timestamp - a.timestamp)
+            existing.lastUpdated = Date.now()
+            
+            chrome.storage.local.set({ [historyKey]: existing }, () => resolve())
+        })
+    })
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "PAGE_ANALYSIS") {
         const url = message.url
+        const domain = getDomainFromUrl(url)
         analysisCache.set(url, message.data)
         chrome.storage.local.set({ [url]: message.data }, () => {
-            sendResponse({ success: true })
+            saveHistory(domain, message.data).then(() => {
+                sendResponse({ success: true })
+            })
         })
         return true
     } else if (message.type === "GET_ANALYSIS") {
@@ -25,6 +58,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             })
             return true
         }
+    } else if (message.type === "GET_HISTORY") {
+        const domain = message.domain || getDomainFromUrl(message.url || "")
+        const historyKey = `history_${domain}`
+        chrome.storage.local.get([historyKey], (result) => {
+            sendResponse({ data: result[historyKey] || null })
+        })
+        return true
     }
     return false
 })

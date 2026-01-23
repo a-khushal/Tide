@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import "./popup.css"
-import type { AnalysisData } from "./types"
+import type { AnalysisData, DomainHistory } from "./types"
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B"
@@ -19,6 +19,7 @@ function IndexPopup() {
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [history, setHistory] = useState<DomainHistory | null>(null)
 
   useEffect(() => {
     async function fetchAnalysis() {
@@ -77,6 +78,12 @@ function IndexPopup() {
 
                     if (pollResponse?.data) {
                       setAnalysis(pollResponse.data)
+                      const domain = tab.url ? new URL(tab.url).hostname : ""
+                      chrome.runtime.sendMessage({ type: "GET_HISTORY", domain }, (histResponse) => {
+                        if (histResponse?.data) {
+                          setHistory(histResponse.data)
+                        }
+                      })
                       setLoading(false)
                     } else if (attempts < maxAttempts) {
                       setTimeout(pollForData, 300)
@@ -384,6 +391,63 @@ function IndexPopup() {
                 </div>
               )
             })}
+          </div>
+        </section>
+      )}
+
+      {analysis.securityIssues && analysis.securityIssues.length > 0 && (
+        <section className="mt-4">
+          <h3 className="m-0 mb-3 text-base font-semibold">Security Issues</h3>
+          <div className="flex flex-col gap-2">
+            {analysis.securityIssues.map((issue, idx) => {
+              const severityColor = issue.severity === "high" ? "bg-[#fee2e2] text-[#991b1b]" : 
+                                    issue.severity === "medium" ? "bg-[#fef3c7] text-[#b45309]" : 
+                                    "bg-[#f0f9ff] text-[#075985]"
+              return (
+                <div key={idx} className={`p-3 rounded text-xs border ${severityColor}`}>
+                  <div className="font-semibold mb-1">{issue.type.replace("_", " ").toUpperCase()}</div>
+                  <div className="text-[11px]">{issue.message}</div>
+                  {issue.script && (
+                    <div className="text-[10px] mt-1 opacity-75 break-all">{issue.script}</div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {history && history.entries.length > 0 && (
+        <section className="mt-4">
+          <h3 className="m-0 mb-3 text-base font-semibold">History & Trends</h3>
+          <div className="text-xs text-[#666] mb-2">
+            Last 30 days ({history.entries.length} entries)
+          </div>
+          {history.entries.length >= 2 && (() => {
+            const latest = history.entries[0]
+            const previous = history.entries[1]
+            const sizeDiff = latest.totalSize - previous.totalSize
+            const sizePercent = previous.totalSize > 0 ? ((sizeDiff / previous.totalSize) * 100).toFixed(1) : "0"
+            const scriptDiff = latest.scriptCount - previous.scriptCount
+            return (
+              <div className="p-3 bg-[#f5f5f5] rounded text-xs">
+                <div className="mb-2">
+                  <div className="text-[11px] text-[#666]">Size change</div>
+                  <div className={`font-semibold ${sizeDiff > 0 ? "text-[#dc2626]" : sizeDiff < 0 ? "text-[#16a34a]" : ""}`}>
+                    {sizeDiff > 0 ? "+" : ""}{formatBytes(sizeDiff)} ({sizePercent}%)
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-[#666]">Script count change</div>
+                  <div className={`font-semibold ${scriptDiff > 0 ? "text-[#dc2626]" : scriptDiff < 0 ? "text-[#16a34a]" : ""}`}>
+                    {scriptDiff > 0 ? "+" : ""}{scriptDiff} scripts
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+          <div className="mt-2 text-[11px] text-[#666]">
+            Average: {formatBytes(Math.round(history.entries.reduce((sum, e) => sum + e.totalSize, 0) / history.entries.length))}
           </div>
         </section>
       )}

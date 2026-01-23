@@ -11,6 +11,8 @@ export interface ScriptInfo {
     defer: boolean
     module: boolean
     potentiallyUnused: boolean
+    hasEval: boolean
+    untrustedDomain: boolean
 }
 
 export interface FrameworkInfo {
@@ -33,6 +35,15 @@ export interface PerformanceMetrics {
     mainThreadBlockingTime: number
 }
 
+export interface SecurityIssue {
+    type: "vulnerable_version" | "eval_usage" | "untrusted_domain" | "csp_violation"
+    severity: "high" | "medium" | "low"
+    message: string
+    script?: string
+    library?: string
+    version?: string
+}
+
 export interface AnalysisData {
     scripts: ScriptInfo[]
     frameworks: FrameworkInfo[]
@@ -46,4 +57,19 @@ export interface AnalysisData {
     thirdPartyCount: number
     cdnCount: number
     cdnSize: number
+    securityIssues: SecurityIssue[]
+    timestamp: number
+}
+
+export interface HistoryEntry {
+    timestamp: number
+    totalSize: number
+    scriptCount: number
+    thirdPartySize: number
+}
+
+export interface DomainHistory {
+    domain: string
+    entries: HistoryEntry[]
+    lastUpdated: number
 }
