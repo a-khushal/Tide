@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import "./popup.css"
-import type { AnalysisData, DomainHistory } from "./types"
+import type { AnalysisData, DomainHistory, ScriptInfo } from "./types"
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B"
@@ -13,6 +13,138 @@ function formatBytes(bytes: number): string {
 function formatTime(ms: number): string {
   if (ms < 1000) return Math.round(ms) + " ms"
   return (Math.round(ms / 100) / 10).toFixed(1) + " s"
+}
+
+function PieChart({ data, size = 80 }: { data: Array<{ label: string; value: number; color: string }>; size?: number }) {
+  const total = data.reduce((sum, d) => sum + d.value, 0)
+  if (total === 0) return null
+  
+  let currentAngle = -90
+  const center = size / 2
+  const radius = size / 2 - 4
+  
+  const paths = data.map((item) => {
+    const percentage = (item.value / total) * 100
+    const angle = (item.value / total) * 360
+    const startAngle = currentAngle
+    const endAngle = currentAngle + angle
+    currentAngle = endAngle
+    
+    const x1 = center + radius * Math.cos((startAngle * Math.PI) / 180)
+    const y1 = center + radius * Math.sin((startAngle * Math.PI) / 180)
+    const x2 = center + radius * Math.cos((endAngle * Math.PI) / 180)
+    const y2 = center + radius * Math.sin((endAngle * Math.PI) / 180)
+    const largeArc = angle > 180 ? 1 : 0
+    
+    return {
+      path: `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`,
+      percentage,
+      label: item.label,
+      color: item.color,
+      value: item.value
+    }
+  })
+  
+  return (
+    <div className="flex items-center gap-4">
+      <svg width={size} height={size} className="flex-shrink-0">
+        {paths.map((p, i) => (
+          <path key={i} d={p.path} fill={p.color} stroke="#2d2d2d" strokeWidth="1" />
+        ))}
+      </svg>
+      <div className="flex flex-col gap-1 text-xs">
+        {paths.map((p, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded" style={{ backgroundColor: p.color }} />
+            <span className="text-[#b0b0b0]">{p.label}:</span>
+            <span className="font-mono text-[#e8e8e8]">{p.percentage.toFixed(1)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BarChart({ data, maxValue }: { data: Array<{ label: string; value: number; color: string }>; maxValue: number }) {
+  if (data.length === 0 || maxValue === 0) return null
+  
+  return (
+    <div className="flex flex-col gap-1.5">
+      {data.map((item, i) => {
+        const width = (item.value / maxValue) * 100
+        return (
+          <div key={i} className="flex items-center gap-2">
+            <div className="text-[10px] text-[#808080] w-16 truncate font-mono" title={item.label}>
+              {item.label}
+            </div>
+            <div className="flex-1 h-4 bg-[#363636] border border-[#404040] rounded overflow-hidden">
+              <div
+                className="h-full"
+                style={{
+                  width: `${width}%`,
+                  backgroundColor: item.color,
+                  transition: "width 0.3s ease"
+                }}
+              />
+            </div>
+            <div className="text-[10px] font-mono text-[#b0b0b0] w-12 text-right">
+              {formatBytes(item.value)}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function TimelineChart({ scripts }: { scripts: ScriptInfo[] }) {
+  if (scripts.length === 0) return null
+  
+  const sortedScripts = [...scripts].sort((a, b) => a.loadTime - b.loadTime)
+  const maxTime = Math.max(...sortedScripts.map(s => s.loadTime + s.parseTime), 1)
+  const timelineScripts = sortedScripts.slice(0, 15)
+  
+  return (
+    <div className="relative">
+      <div className="text-[10px] text-[#808080] mb-2">Load Timeline (ms)</div>
+      <div className="relative h-32 bg-[#363636] border border-[#404040] rounded p-2">
+        {timelineScripts.map((script, i) => {
+          const startPercent = (script.loadTime / maxTime) * 100
+          const widthPercent = ((script.loadTime + script.parseTime) / maxTime) * 100 - startPercent
+          const fileName = script.src.split("/").pop() || script.src
+          const color = script.firstParty ? "#7db3d3" : "#d4a574"
+          
+          return (
+            <div
+              key={i}
+              className="absolute bottom-0 border border-[#404040] rounded"
+              style={{
+                left: `${startPercent}%`,
+                width: `${Math.max(widthPercent, 2)}%`,
+                height: `${20 + (i % 3) * 8}px`,
+                backgroundColor: color,
+                opacity: 0.7
+              }}
+              title={`${fileName}: ${formatTime(script.loadTime)} - ${formatTime(script.loadTime + script.parseTime)}`}
+            />
+          )
+        })}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-[#404040]" />
+        <div className="absolute bottom-0 left-0 text-[8px] text-[#808080]">0ms</div>
+        <div className="absolute bottom-0 right-0 text-[8px] text-[#808080]">{formatTime(maxTime)}</div>
+      </div>
+      <div className="mt-2 flex gap-3 text-[10px] text-[#808080]">
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded" style={{ backgroundColor: "#7db3d3", opacity: 0.7 }} />
+          <span>First-party</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded" style={{ backgroundColor: "#d4a574", opacity: 0.7 }} />
+          <span>Third-party</span>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function generateRecommendations(analysis: AnalysisData): string[] {
@@ -419,6 +551,74 @@ function IndexPopup() {
           {analysis.scripts.length} script{analysis.scripts.length !== 1 ? "s" : ""} detected
         </div>
       </section>
+
+      <section className="mb-5">
+        <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">
+          Size Distribution
+        </h3>
+        <div className="p-3 bg-[#363636] border border-[#404040] rounded">
+          {(() => {
+            const frameworkSize = analysis.frameworks.reduce((sum, fw) => {
+              const fwScripts = analysis.scripts.filter(s => 
+                s.src.toLowerCase().includes(fw.name.toLowerCase()) ||
+                s.host.toLowerCase().includes(fw.name.toLowerCase())
+              )
+              return sum + fwScripts.reduce((s, script) => s + script.size, 0)
+            }, 0)
+            
+            const librarySize = analysis.libraries.reduce((sum, lib) => {
+              const libScripts = analysis.scripts.filter(s =>
+                s.src.toLowerCase().includes(lib.name.toLowerCase()) ||
+                s.host.toLowerCase().includes(lib.name.toLowerCase())
+              )
+              return sum + libScripts.reduce((s, script) => s + script.size, 0)
+            }, 0)
+            
+            const appCodeSize = Math.max(0, analysis.totalSize - frameworkSize - librarySize - analysis.thirdPartySize)
+            
+            const pieData = [
+              { label: "App Code", value: appCodeSize, color: "#7db3d3" },
+              { label: "Frameworks", value: frameworkSize, color: "#7db892" },
+              { label: "Libraries", value: librarySize, color: "#d4a574" },
+              { label: "Third-party", value: analysis.thirdPartySize, color: "#d4a5a5" }
+            ].filter(d => d.value > 0)
+            
+            return <PieChart data={pieData} size={100} />
+          })()}
+        </div>
+      </section>
+
+      {topScripts.length > 0 && (
+        <section className="mb-5">
+          <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">
+            Top Scripts (Bar Chart)
+          </h3>
+          <div className="p-3 bg-[#363636] border border-[#404040] rounded">
+            <BarChart
+              data={topScripts.map(script => {
+                const fileName = script.src.split("/").pop() || script.src
+                return {
+                  label: fileName.length > 12 ? fileName.substring(0, 12) + "..." : fileName,
+                  value: script.size,
+                  color: script.firstParty ? "#7db3d3" : "#d4a574"
+                }
+              })}
+              maxValue={topScripts[0]?.size || 1}
+            />
+          </div>
+        </section>
+      )}
+
+      {analysis.scripts.length > 0 && (
+        <section className="mb-5">
+          <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">
+            Script Load Timeline
+          </h3>
+          <div className="p-3 bg-[#363636] border border-[#404040] rounded">
+            <TimelineChart scripts={analysis.scripts} />
+          </div>
+        </section>
+      )}
 
       <section className="mb-5">
         <h3 className="m-0 mb-2 text-xs font-semibold text-[#b0b0b0] uppercase tracking-wide">Third-Party Analysis</h3>
