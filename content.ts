@@ -774,3 +774,46 @@ if (extensionActive) {
     }
 }
 
+if (extensionActive && typeof MutationObserver !== "undefined") {
+    try {
+        const scriptObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeName === "SCRIPT") {
+                        const script = node as HTMLScriptElement
+                        if (extensionActive) {
+                            chrome.runtime.sendMessage({
+                                type: "SCRIPT_INJECTED",
+                                src: script.src || "inline"
+                            }).catch(() => {})
+                        }
+                    }
+                })
+                mutation.removedNodes.forEach((node) => {
+                    if (node.nodeName === "SCRIPT") {
+                        const script = node as HTMLScriptElement
+                        if (extensionActive) {
+                            chrome.runtime.sendMessage({
+                                type: "SCRIPT_REMOVED",
+                                src: script.src || "inline"
+                            }).catch(() => {})
+                        }
+                    }
+                })
+            })
+        })
+
+        scriptObserver.observe(document.head, {
+            childList: true,
+            subtree: true
+        })
+
+        scriptObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        })
+    } catch (error) {
+        console.warn("Failed to set up script observer:", error)
+    }
+}
+

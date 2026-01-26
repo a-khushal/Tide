@@ -1,5 +1,7 @@
 import type { AnalysisData, DomainHistory, HistoryEntry } from "./types"
 const analysisCache = new Map<string, AnalysisData>()
+const scriptMonitor: Array<{ src: string; action: string; timestamp: number }> = []
+let currentAnalysis: AnalysisData | null = null
 
 function getDomainFromUrl(url: string): string {
     try {
@@ -36,9 +38,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const url = message.url
         const domain = getDomainFromUrl(url)
         analysisCache.set(url, message.data)
+        currentAnalysis = message.data
+        
+        scriptMonitor.push({
+            src: url,
+            action: "Analysis updated",
+            timestamp: Date.now()
+        })
+        if (scriptMonitor.length > 100) {
+            scriptMonitor.shift()
+        }
+        
         chrome.storage.local.set({ [url]: message.data }, () => {
             saveHistory(domain, message.data).then(() => {
                 sendResponse({ success: true })
+                sendToAPI(message.data).catch(() => {})
             })
         })
         return true
@@ -65,9 +79,81 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ data: result[historyKey] || null })
         })
         return true
+    } else if (message.type === "GET_CURRENT_ANALYSIS") {
+        sendResponse({ data: currentAnalysis })
+        return true
+    } else if (message.type === "GET_SCRIPTS_MONITOR") {
+        sendResponse({ scripts: scriptMonitor.slice(-20) })
+        return true
+    } else if (message.type === "SCRIPT_INJECTED") {
+        scriptMonitor.push({
+            src: message.src || "inline",
+            action: "Script injected",
+            timestamp: Date.now()
+        })
+        if (scriptMonitor.length > 100) {
+            scriptMonitor.shift()
+        }
+        return true
+    } else if (message.type === "SCRIPT_REMOVED") {
+        scriptMonitor.push({
+            src: message.src || "inline",
+            action: "Script removed",
+            timestamp: Date.now()
+        })
+        if (scriptMonitor.length > 100) {
+            scriptMonitor.shift()
+        }
+        return true
     }
     return false
 })
+
+async function sendToAPI(data: AnalysisData): Promise<void> {
+    try {
+        const result = await chrome.storage.sync.get(["tideSettings"])
+        const settings = result.tideSettings
+        if (!settings?.apiEnabled || !settings?.apiEndpoint) {
+            return
+        }
+
+        const payload = {
+            totalSize: data.totalSize,
+            scriptCount: data.scripts.length,
+            thirdPartySize: data.thirdPartySize,
+            frameworks: data.frameworks.map(f => f.name),
+            libraries: data.libraries.map(l => l.name),
+            timestamp: data.timestamp
+        }
+
+        await fetch(settings.apiEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+    } catch (error) {
+        console.error("Failed to send data to API:", error)
+    }
+}
+
+async function getPeerRecommendations(domain: string): Promise<string[]> {
+    try {
+        const result = await chrome.storage.sync.get(["tideSettings"])
+        const settings = result.tideSettings
+        if (!settings?.apiEnabled || !settings?.apiEndpoint) {
+            return []
+        }
+
+        const response = await fetch(`${settings.apiEndpoint}/recommendations?domain=${encodeURIComponent(domain)}`)
+        if (response.ok) {
+            const data = await response.json()
+            return data.recommendations || []
+        }
+    } catch (error) {
+        console.error("Failed to get peer recommendations:", error)
+    }
+    return []
+}
 
 chrome.webRequest.onCompleted.addListener(
     (details) => {

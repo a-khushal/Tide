@@ -34,7 +34,8 @@
     "permissions": [
       "storage",
       "webRequest",
-      "tabs"
+      "tabs",
+      "devtools"
     ]
   }
 }

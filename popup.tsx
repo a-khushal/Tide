@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import "./popup.css"
 import type { AnalysisData, DomainHistory, ScriptInfo } from "./types"
+import { getRecommendations, getPeerComparisons, getCommunityData } from "./api"
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B"
