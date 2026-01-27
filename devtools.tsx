@@ -2,10 +2,6 @@ import { useState, useEffect } from "react"
 import type { AnalysisData } from "./types"
 import "./popup.css"
 
-export const config = {
-  matches: ["<all_urls>"]
-}
-
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B"
   const k = 1024

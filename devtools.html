@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tide DevTools</title>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <script>
+      if (typeof chrome !== "undefined" && chrome.devtools && chrome.devtools.panels) {
+        const panelUrl = chrome.runtime.getURL("devtools-panel.html")
+        chrome.devtools.panels.create(
+          "Tide",
+          chrome.runtime.getURL("icon16.plasmo.9f44d99c.png"),
+          panelUrl,
+          function(panel) {
+            if (chrome.runtime.lastError) {
+              console.error("Tide panel error:", chrome.runtime.lastError.message)
+            }
+          }
+        )
+      }
+    </script>
+  </body>
+</html>
+
